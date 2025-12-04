@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class OrderItem extends Model
+{
+    /** @use HasFactory<\Database\Factories\OrderItemFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'item_type',
+        'item_number',
+        'item_name',
+        'color_id',
+        'color_name',
+        'quantity',
+        'unit_price',
+        'total_price',
+        'condition',
+        'completeness',
+        'description',
+        'remarks',
+        'store_location',
+        'image_url',
+        'is_packed',
+        'packed_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'integer',
+            'unit_price' => 'decimal:2',
+            'total_price' => 'decimal:2',
+            'is_packed' => 'boolean',
+            'packed_at' => 'datetime',
+        ];
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+}
