@@ -121,6 +121,9 @@
                     </dl>
                 </div>
 
+                <!-- Nextcloud Status -->
+                <x-invoice.nextcloud-status :invoice="$invoice" />
+
                 <!-- Actions -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Aktionen</h2>

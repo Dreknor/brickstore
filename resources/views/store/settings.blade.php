@@ -280,12 +280,9 @@
                         </div>
 
                         <div class="flex justify-between items-center pt-4">
-                            <form action="{{ route('store.settings.smtp.test') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
-                                    <i class="fa-solid fa-paper-plane mr-2"></i> Test-E-Mail senden
-                                </button>
-                            </form>
+                            <button type="button" id="smtp-test-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                                <i class="fa-solid fa-paper-plane mr-2"></i> Test-E-Mail senden
+                            </button>
                             <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                 Speichern
                             </button>
@@ -328,11 +325,14 @@
                                    placeholder="/Rechnungen/{year}/{month}"
                                    class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Verfügbare Platzhalter: {year}, {month}
+                                Verfügbare Platzhalter: {year}, {month}, {day}, {store_name}
                             </p>
                         </div>
 
-                        <div class="flex justify-end pt-4">
+                        <div class="flex justify-between items-center pt-4">
+                            <button type="button" id="nextcloud-test-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                                <i class="fa-brands fa-nextcloud mr-2"></i> Verbindung testen
+                            </button>
                             <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                 Speichern
                             </button>
@@ -344,5 +344,95 @@
             <!-- Weitere Tabs folgen analog... -->
         </div>
     </div>
+
+    <script>
+        // Handle test buttons with AJAX
+        document.addEventListener('DOMContentLoaded', function() {
+            // SMTP Test Button
+            const smtpTestBtn = document.getElementById('smtp-test-btn');
+            if (smtpTestBtn) {
+                smtpTestBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    testConnection('{{ route("store.settings.smtp.test") }}', this);
+                });
+            }
+
+            // Nextcloud Test Button
+            const nextcloudTestBtn = document.getElementById('nextcloud-test-btn');
+            if (nextcloudTestBtn) {
+                nextcloudTestBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    testConnection('{{ route("store.settings.nextcloud.test") }}', this);
+                });
+            }
+        });
+
+        function testConnection(url, btn) {
+            const originalText = btn.innerHTML;
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Wird getestet...';
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('input[name="_token"]');
+            const token = csrfToken ? csrfToken.value : '';
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Create notification
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 transition-all duration-300 shadow-lg ${
+                    data.success
+                        ? 'bg-green-500 dark:bg-green-600'
+                        : 'bg-red-500 dark:bg-red-600'
+                }`;
+                notification.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid ${data.success ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                        <span>${data.message}</span>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+
+                // Auto-remove notification after 5 seconds
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
+            })
+            .catch(error => {
+                console.error('Test error:', error);
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 p-4 rounded-lg text-white bg-red-500 dark:bg-red-600 z-50 transition-all duration-300 shadow-lg';
+                notification.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <span>Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.</span>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
+            })
+            .finally(() => {
+                // Restore button state
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        }
+    </script>
 </x-layouts.app>
 

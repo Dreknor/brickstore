@@ -67,9 +67,9 @@
             </div>
         @endif
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Linke Spalte -->
-            <div class="space-y-6">
+            <div class="col-span-2 space-y-6">
                 <!-- Käuferinformationen -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                     <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
@@ -325,9 +325,9 @@
                     </dl>
                 </div>
             </div>
-
+            </div>
             <!-- Rechte Spalte -->
-            <div class="space-y-6">
+            <div class="col-span-1 space-y-6">
                 <!-- Status-Übersicht -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
@@ -480,9 +480,140 @@
                             </div>
                         @endif
                     </dl>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
+                        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>Aktionen</span>
+                        </h2>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Status ändern -->
+                        <div>
+                            <form action="{{ route('orders.update-status', $order) }}" method="POST">
+                                @csrf
+                                <label for="status" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-exchange-alt text-blue-500"></i>
+                                    <span>Status ändern</span>
+                                </label>
+                                <select name="status" id="status"
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 mb-3 transition-all">
+                                    <option value="Processing" {{ $order->status === 'Processing' ? 'selected' : '' }}>⚙️ Processing</option>
+                                    <option value="Ready" {{ $order->status === 'Ready' ? 'selected' : '' }}>✅ Ready</option>
+                                    <option value="Paid" {{ $order->status === 'Paid' ? 'selected' : '' }}>💰 Paid</option>
+                                    <option value="Packed" {{ $order->status === 'Packed' ? 'selected' : '' }}>📦 Packed</option>
+                                    <option value="Shipped" {{ $order->status === 'Shipped' ? 'selected' : '' }}>🚚 Shipped</option>
+                                </select>
+                                <button type="submit"
+                                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all">
+                                    <i class="fa-solid fa-check"></i>
+                                    <span>Status aktualisieren</span>
+                                </button>
+                                @error('status')
+                                <p class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-exclamation-circle"></i>
+                                    {{ $message }}
+                                </p>
+                                @enderror
+                            </form>
+                        </div>
+
+                        <!-- Sendungsverfolgung -->
+                        <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+                            <form action="{{ route('orders.update-shipping', $order) }}" method="POST">
+                                @csrf
+                                <label for="tracking_number" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-truck-fast text-indigo-500"></i>
+                                    <span>Sendungsverfolgung</span>
+                                </label>
+                                <div class="space-y-3">
+                                    <div>
+                                        <input type="text"
+                                               name="tracking_number"
+                                               id="tracking_number"
+                                               value="{{ old('tracking_number', $order->tracking_number) }}"
+                                               placeholder="Tracking-Nummer"
+                                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                                        @error('tracking_number')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                                            <i class="fa-solid fa-exclamation-circle"></i>
+                                            {{ $message }}
+                                        </p>
+                                        @enderror
+                                    </div>
+
+                                    <div>
+                                        <input type="url"
+                                               name="tracking_link"
+                                               id="tracking_link"
+                                               value="{{ old('tracking_link', $order->tracking_link) }}"
+                                               placeholder="Tracking-Link (optional)"
+                                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                                        @error('tracking_link')
+                                        <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                                            <i class="fa-solid fa-exclamation-circle"></i>
+                                            {{ $message }}
+                                        </p>
+                                        @enderror
+                                    </div>
+
+                                    <button type="submit"
+                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all">
+                                        <i class="fa-solid fa-save"></i>
+                                        <span>Speichern</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Als versendet markieren -->
+                        @if($order->status !== 'Shipped')
+                            <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+                                <form action="{{ route('orders.ship', $order) }}" method="POST" onsubmit="return confirm('Bestellung wirklich als versendet markieren?')">
+                                    @csrf
+                                    <input type="hidden" name="tracking_number" value="{{ $order->tracking_number ?? '' }}">
+                                    <input type="hidden" name="tracking_link" value="{{ $order->tracking_link ?? '' }}">
+                                    <button type="submit"
+                                            class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                        {{ !$order->tracking_number ? 'disabled title="Bitte zuerst Sendungsnummer eingeben"' : '' }}>
+                                        <i class="fa-solid fa-truck"></i> Als versendet markieren
+                                    </button>
+                                    @if(!$order->tracking_number)
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Bitte geben Sie zuerst eine Sendungsnummer ein</p>
+                                    @endif
+                                </form>
+                            </div>
+                        @endif
+
+                        <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+                            @if(!$order->invoice)
+                                <form action="{{ route('orders.create-invoice', $order) }}" method="POST">
+                                    @csrf
+                                    <button type="submit"
+                                            class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                        <i class="fa-solid fa-file-invoice"></i> Rechnung erstellen
+                                    </button>
+                                </form>
+                            @else
+                                <a href="{{ route('invoices.show', $order->invoice) }}"
+                                   class="block w-full px-4 py-2 bg-purple-600 text-white text-center rounded-lg hover:bg-purple-700 transition-colors">
+                                    <i class="fa-solid fa-file-invoice"></i> Rechnung anzeigen
+                                </a>
+                            @endif
+                        </div>
+
+                        <div>
+                            <form action="{{ route('orders.sync-all') }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fa-solid fa-sync"></i> Mit BrickLink synchronisieren
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-
                 <!-- Feedback -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-4">
@@ -492,117 +623,34 @@
                         </h2>
                     </div>
                     <div class="p-6 space-y-6">
-                        @php
-                            $feedbackFrom = $order->feedback->where('direction', 'from_buyer')->first();
-                            $feedbackTo = $order->feedback->where('direction', 'to_buyer')->first();
-                        @endphp
+                        @foreach($order->feedback as $feedback)
 
-                        <!-- Feedback vom Käufer -->
-                        @if($feedbackFrom)
-                            <div class="pb-6 border-b border-gray-200 dark:border-gray-700">
-                                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                                    <i class="fa-solid fa-user text-blue-500"></i>
-                                    Bewertung vom Käufer
-                                </h3>
-                                <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3">
+                            <div class="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-600 p-4 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
                                     <div class="flex items-center gap-2">
-                                        <span class="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full
-                                            @if($feedbackFrom->rating === 0) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
-                                            @elseif($feedbackFrom->rating === 1) bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
-                                            @else bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
-                                            @endif">
-                                            @if($feedbackFrom->rating === 0)
-                                                <i class="fa-solid fa-thumbs-up mr-1"></i> Praise
-                                            @elseif($feedbackFrom->rating === 1)
-                                                <i class="fa-solid fa-minus mr-1"></i> Neutral
-                                            @else
-                                                <i class="fa-solid fa-thumbs-down mr-1"></i> Complaint
-                                            @endif
-                                        </span>
-                                        @if($feedbackFrom->feedback_date)
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $feedbackFrom->feedback_date->format('d.m.Y') }}
-                                            </span>
-                                        @endif
+                                        <i class="fa-solid fa-user-circle text-amber-600"></i>
+                                        <span class="font-semibold text-gray-900 dark:text-white">{{ $feedback->from }}</span>
                                     </div>
-                                    @if($feedbackFrom->comment)
-                                        <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ $feedbackFrom->comment }}</p>
-                                    @endif
-                                    @if($feedbackFrom->rating_of_bs || $feedbackFrom->rating_of_td || $feedbackFrom->rating_of_comm || $feedbackFrom->rating_of_ship || $feedbackFrom->rating_of_pack)
-                                        <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-gray-200 dark:border-gray-700">
-                                            @if($feedbackFrom->rating_of_bs)
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Verkäufer:</span>
-                                                    <span class="font-medium">{{ $feedbackFrom->rating_of_bs }}</span>
-                                                </div>
-                                            @endif
-                                            @if($feedbackFrom->rating_of_td)
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Konditionen:</span>
-                                                    <span class="font-medium">{{ $feedbackFrom->rating_of_td }}</span>
-                                                </div>
-                                            @endif
-                                            @if($feedbackFrom->rating_of_comm)
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Kommunikation:</span>
-                                                    <span class="font-medium">{{ $feedbackFrom->rating_of_comm }}</span>
-                                                </div>
-                                            @endif
-                                            @if($feedbackFrom->rating_of_ship)
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Versand:</span>
-                                                    <span class="font-medium">{{ $feedbackFrom->rating_of_ship }}</span>
-                                                </div>
-                                            @endif
-                                            @if($feedbackFrom->rating_of_pack)
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Verpackung:</span>
-                                                    <span class="font-medium">{{ $feedbackFrom->rating_of_pack }}</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endif
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                                        {{ $feedback->created_at->format('d.m.Y') }}
+                                    </span>
                                 </div>
-                            </div>
-                        @endif
-
-                        <!-- Feedback an Käufer -->
-                        @if($feedbackTo)
-                            <div class="pb-6 border-b border-gray-200 dark:border-gray-700">
-                                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                                    <i class="fa-solid fa-store text-green-500"></i>
-                                    Ihre Bewertung
-                                </h3>
-                                <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3">
-                                    <div class="flex items-center gap-2">
-                                        <span class="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full
-                                            @if($feedbackTo->rating === 0) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
-                                            @elseif($feedbackTo->rating === 1) bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
-                                            @else bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
-                                            @endif">
-                                            @if($feedbackTo->rating === 0)
-                                                <i class="fa-solid fa-thumbs-up mr-1"></i> Praise
-                                            @elseif($feedbackTo->rating === 1)
-                                                <i class="fa-solid fa-minus mr-1"></i> Neutral
-                                            @else
-                                                <i class="fa-solid fa-thumbs-down mr-1"></i> Complaint
-                                            @endif
-                                        </span>
-                                        @if($feedbackTo->feedback_date)
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $feedbackTo->feedback_date->format('d.m.Y') }}
-                                            </span>
+                                <div class="flex items-center mb-3">
+                                    @for($i = 0; $i < 5; $i++)
+                                        @if($i < (5 - $feedback->rating))
+                                            <i class="fa-solid fa-star text-amber-300"></i>
+                                        @else
+                                            <i class="fa-solid fa-star text-amber-600"></i>
                                         @endif
-                                    </div>
-                                    @if($feedbackTo->comment)
-                                        <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ $feedbackTo->comment }}</p>
-                                    @endif
+                                    @endfor
                                 </div>
+                                <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ $feedback->comment }}</p>
                             </div>
-                        @endif
 
+
+                        @endforeach
                         <!-- Feedback senden (wenn noch nicht vorhanden) -->
-                        @if(!$feedbackTo && $order->status === 'Shipped')
+                        @if(! $order->status === 'Shipped')
                             <div>
                                 <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                                     <i class="fa-solid fa-paper-plane text-indigo-500"></i>
@@ -657,142 +705,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Aktionen -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
-                        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-                            <i class="fa-solid fa-bolt"></i>
-                            <span>Aktionen</span>
-                        </h2>
-                    </div>
-                    <div class="p-6 space-y-6">
-                        <!-- Status ändern -->
-                        <div>
-                            <form action="{{ route('orders.update-status', $order) }}" method="POST">
-                                @csrf
-                                <label for="status" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                                    <i class="fa-solid fa-exchange-alt text-blue-500"></i>
-                                    <span>Status ändern</span>
-                                </label>
-                                <select name="status" id="status"
-                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 mb-3 transition-all">
-                                    <option value="Processing" {{ $order->status === 'Processing' ? 'selected' : '' }}>⚙️ Processing</option>
-                                    <option value="Ready" {{ $order->status === 'Ready' ? 'selected' : '' }}>✅ Ready</option>
-                                    <option value="Paid" {{ $order->status === 'Paid' ? 'selected' : '' }}>💰 Paid</option>
-                                    <option value="Packed" {{ $order->status === 'Packed' ? 'selected' : '' }}>📦 Packed</option>
-                                    <option value="Shipped" {{ $order->status === 'Shipped' ? 'selected' : '' }}>🚚 Shipped</option>
-                                </select>
-                                <button type="submit"
-                                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all">
-                                    <i class="fa-solid fa-check"></i>
-                                    <span>Status aktualisieren</span>
-                                </button>
-                                @error('status')
-                                    <p class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                                        <i class="fa-solid fa-exclamation-circle"></i>
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </form>
-                        </div>
-
-                        <!-- Sendungsverfolgung -->
-                        <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
-                            <form action="{{ route('orders.update-shipping', $order) }}" method="POST">
-                                @csrf
-                                <label for="tracking_number" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                                    <i class="fa-solid fa-truck-fast text-indigo-500"></i>
-                                    <span>Sendungsverfolgung</span>
-                                </label>
-                                <div class="space-y-3">
-                                    <div>
-                                        <input type="text"
-                                               name="tracking_number"
-                                               id="tracking_number"
-                                               value="{{ old('tracking_number', $order->tracking_number) }}"
-                                               placeholder="Tracking-Nummer"
-                                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all">
-                                        @error('tracking_number')
-                                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                                                <i class="fa-solid fa-exclamation-circle"></i>
-                                                {{ $message }}
-                                            </p>
-                                        @enderror
-                                    </div>
-
-                                    <div>
-                                        <input type="url"
-                                               name="tracking_link"
-                                               id="tracking_link"
-                                               value="{{ old('tracking_link', $order->tracking_link) }}"
-                                               placeholder="Tracking-Link (optional)"
-                                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all">
-                                        @error('tracking_link')
-                                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                                                <i class="fa-solid fa-exclamation-circle"></i>
-                                                {{ $message }}
-                                            </p>
-                                        @enderror
-                                    </div>
-
-                                    <button type="submit"
-                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all">
-                                        <i class="fa-solid fa-save"></i>
-                                        <span>Speichern</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Als versendet markieren -->
-                        @if($order->status !== 'Shipped')
-                            <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
-                                <form action="{{ route('orders.ship', $order) }}" method="POST" onsubmit="return confirm('Bestellung wirklich als versendet markieren?')">
-                                    @csrf
-                                    <input type="hidden" name="tracking_number" value="{{ $order->tracking_number ?? '' }}">
-                                    <input type="hidden" name="tracking_link" value="{{ $order->tracking_link ?? '' }}">
-                                    <button type="submit"
-                                            class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                            {{ !$order->tracking_number ? 'disabled title="Bitte zuerst Sendungsnummer eingeben"' : '' }}>
-                                        <i class="fa-solid fa-truck"></i> Als versendet markieren
-                                    </button>
-                                    @if(!$order->tracking_number)
-                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Bitte geben Sie zuerst eine Sendungsnummer ein</p>
-                                    @endif
-                                </form>
-                            </div>
-                        @endif
-
-                        <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
-                            @if(!$order->invoice)
-                                <form action="{{ route('orders.create-invoice', $order) }}" method="POST">
-                                    @csrf
-                                    <button type="submit"
-                                            class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                        <i class="fa-solid fa-file-invoice"></i> Rechnung erstellen
-                                    </button>
-                                </form>
-                            @else
-                                <a href="{{ route('invoices.show', $order->invoice) }}"
-                                   class="block w-full px-4 py-2 bg-purple-600 text-white text-center rounded-lg hover:bg-purple-700 transition-colors">
-                                    <i class="fa-solid fa-file-invoice"></i> Rechnung anzeigen
-                                </a>
-                            @endif
-                        </div>
-
-                        <div>
-                            <form action="{{ route('orders.sync-all') }}" method="POST">
-                                @csrf
-                                <button type="submit"
-                                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                                    <i class="fa-solid fa-sync"></i> Mit BrickLink synchronisieren
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
-    </div>
 </x-layouts.app>

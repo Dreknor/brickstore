@@ -256,7 +256,7 @@ class BrickLinkService
      */
     public function postOrderFeedback(Store $store, string $orderId, int $rating, string $comment): array
     {
-        $url = self::API_BASE_URL.'/orders/'.urlencode($orderId).'/feedback';
+        $url = self::API_BASE_URL.'/feedback';
 
         Log::info('Posting BrickLink order feedback', [
             'orderId' => $orderId,
@@ -266,6 +266,7 @@ class BrickLinkService
         $data = [
             'rating' => $rating,
             'comment' => $comment,
+            'order_id' => $orderId,
         ];
 
         $response = $this->makeRequest('POST', $url, $store, $data);

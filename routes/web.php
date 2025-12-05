@@ -22,6 +22,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('store/settings/smtp', [App\Http\Controllers\StoreController::class, 'updateSmtp'])->name('store.settings.smtp');
     Route::put('store/settings/nextcloud', [App\Http\Controllers\StoreController::class, 'updateNextcloud'])->name('store.settings.nextcloud');
     Route::post('store/settings/smtp/test', [App\Http\Controllers\StoreController::class, 'testSmtp'])->name('store.settings.smtp.test');
+    Route::post('store/settings/nextcloud/test', [App\Http\Controllers\StoreController::class, 'testNextcloud'])->name('store.settings.nextcloud.test');
 
     // Settings
     Route::get('settings/profile', [Settings\ProfileController::class, 'edit'])->name('settings.profile.edit');
@@ -55,6 +56,8 @@ Route::middleware(['auth', 'store.setup'])->group(function () {
     Route::get('invoices/{invoice}/stream', [App\Http\Controllers\InvoiceController::class, 'streamPDF'])->name('invoices.stream-pdf');
     Route::post('invoices/{invoice}/send', [App\Http\Controllers\InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
     Route::post('invoices/{invoice}/mark-paid', [App\Http\Controllers\InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
+    Route::put('invoices/{invoice}', [App\Http\Controllers\InvoiceController::class, 'update'])->name('invoices.update');
+    Route::post('invoices/{invoice}/reupload-nextcloud', [App\Http\Controllers\InvoiceController::class, 'reuploadToNextcloud'])->name('invoices.reupload-nextcloud');
 });
 
 // Admin Routes

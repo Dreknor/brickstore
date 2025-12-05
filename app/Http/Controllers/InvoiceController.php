@@ -174,4 +174,59 @@ class InvoiceController extends Controller
 
         return redirect()->back()->with('success', 'Invoice marked as paid');
     }
+
+    /**
+     * Reupload invoice to Nextcloud
+     */
+    public function reuploadToNextcloud(Invoice $invoice)
+    {
+        Gate::authorize('update', $invoice);
+
+        if (! $invoice->store->nextcloud_url) {
+            return redirect()->back()->with('error', 'Nextcloud is not configured for this store');
+        }
+
+        try {
+            $this->invoiceService->reuploadToNextcloud($invoice);
+
+            ActivityLogger::info('invoice.nextcloud_reupload', "Invoice {$invoice->invoice_number} queued for Nextcloud reupload", $invoice);
+
+            return redirect()->back()->with('success', 'Invoice reupload to Nextcloud has been queued');
+        } catch (\Exception $e) {
+            ActivityLogger::error('invoice.nextcloud_reupload_failed', "Failed to reupload invoice {$invoice->invoice_number}: {$e->getMessage()}", $invoice);
+
+            return redirect()->back()->with('error', 'Failed to reupload invoice: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Update invoice data and regenerate PDF
+     */
+    public function update(Invoice $invoice, Request $request)
+    {
+        Gate::authorize('update', $invoice);
+
+        $validated = $request->validate([
+            'customer_name' => 'required|string',
+            'customer_email' => 'required|email',
+            'customer_address1' => 'nullable|string',
+            'customer_city' => 'nullable|string',
+            'customer_postal_code' => 'nullable|string',
+            'customer_country' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            $this->invoiceService->updateInvoiceAndRegeneratePDF($invoice, $validated);
+
+            ActivityLogger::info('invoice.updated', "Invoice {$invoice->invoice_number} updated and regenerated", $invoice);
+
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', 'Invoice updated and PDF regenerated. Nextcloud upload has been queued.');
+        } catch (\Exception $e) {
+            ActivityLogger::error('invoice.update_failed', "Failed to update invoice {$invoice->invoice_number}: {$e->getMessage()}", $invoice);
+
+            return redirect()->back()->with('error', 'Failed to update invoice: '.$e->getMessage());
+        }
+    }
 }

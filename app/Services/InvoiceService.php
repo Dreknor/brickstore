@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\UploadInvoiceToNextcloudJob;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Store;
@@ -116,7 +117,7 @@ class InvoiceService
     /**
      * Save PDF to storage
      */
-    public function savePDF(Invoice $invoice): string
+    public function savePDF(Invoice $invoice, bool $uploadToNextcloud = true): string
     {
         $pdf = $this->generatePDF($invoice);
 
@@ -132,6 +133,11 @@ class InvoiceService
         $pdf->save($path);
 
         $invoice->update(['pdf_path' => $filename]);
+
+        // Queue Nextcloud upload if enabled
+        if ($uploadToNextcloud && $invoice->store->nextcloud_url) {
+            UploadInvoiceToNextcloudJob::dispatch($invoice);
+        }
 
         return $filename;
     }
@@ -178,5 +184,58 @@ class InvoiceService
             'is_paid' => true,
             'paid_date' => $paidDate ?? now(),
         ]);
+    }
+
+    /**
+     * Update invoice and regenerate PDF with Nextcloud upload
+     */
+    public function updateInvoiceAndRegeneratePDF(Invoice $invoice, array $data, bool $uploadToNextcloud = true): Invoice
+    {
+        // Update invoice data
+        $invoice->update($data);
+
+        // Delete old Nextcloud file if exists
+        if ($invoice->nextcloud_path && $invoice->store->nextcloud_url) {
+            try {
+                $nextcloud = new NextcloudService($invoice->store);
+                $nextcloud->deleteFile($invoice->nextcloud_path);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Could not delete old Nextcloud invoice', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Regenerate PDF
+        $this->savePDF($invoice, $uploadToNextcloud);
+
+        return $invoice;
+    }
+
+    /**
+     * Re-upload invoice to Nextcloud
+     */
+    public function reuploadToNextcloud(Invoice $invoice): void
+    {
+        if (! $invoice->pdf_path) {
+            throw new \Exception('Invoice PDF not generated yet');
+        }
+
+        // Delete old Nextcloud file if exists
+        if ($invoice->nextcloud_path && $invoice->store->nextcloud_url) {
+            try {
+                $nextcloud = new NextcloudService($invoice->store);
+                $nextcloud->deleteFile($invoice->nextcloud_path);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Could not delete old Nextcloud invoice', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Queue new upload
+        UploadInvoiceToNextcloudJob::dispatch($invoice);
     }
 }

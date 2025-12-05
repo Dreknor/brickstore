@@ -281,25 +281,46 @@
 ## ✅ Phase 8: Nextcloud WebDAV Integration
 
 ### 8.1 WebDAV Client
-- [ ] `composer require league/flysystem-webdav`
-- [ ] NextcloudService erstellen
-- [ ] Connection-Test-Methode
-- [ ] Upload-Methode mit Pfad-Platzhaltern ({year}, {month}, {store})
+- [x] `composer require league/flysystem-webdav` ✅
+- [x] NextcloudService erstellen ✅
+- [x] Connection-Test-Methode ✅
+- [x] Upload-Methode mit Pfad-Platzhaltern ({year}, {month}, {store}) ✅
 
 ### 8.2 Invoice-Upload
-- [ ] Nach PDF-Erstellung automatisch hochladen (optional, Checkbox)
-- [ ] Queue-Job: UploadInvoiceToNextcloudJob
-- [ ] Fehlerbehandlung (Connection-Fehler, Ordner nicht vorhanden)
-- [ ] Ordner automatisch erstellen falls nicht vorhanden
+- [x] Nach PDF-Erstellung automatisch hochladen ✅
+- [x] Queue-Job: UploadInvoiceToNextcloudJob ✅
+- [x] Fehlerbehandlung (Connection-Fehler, Ordner nicht vorhanden) ✅
+- [x] Ordner automatisch erstellen falls nicht vorhanden ✅
+- [x] Unique-Constraint auf order_id (maximal eine Rechnung pro Bestellung) ✅
+- [x] Rechnung-Aktualisierung mit PDF-Regeneration ✅
 
 ### 8.3 Settings & UI
-- [ ] Nextcloud-Settings-Formular
-- [ ] Verbindungstest-Button
-- [ ] Upload-Status in Rechnung anzeigen (hochgeladen, fehlgeschlagen)
+- [x] Nextcloud-Settings-Formular (bereits vorhanden) ✅
+- [x] Verbindungstest-Button ✅
+- [x] Upload-Status in Rechnung anzeigen (hochgeladen, fehlgeschlagen) ✅
+- [x] Reupload-Button in UI ✅
+- [x] Dashboard-Widget für Upload-Status ✅
 
----
+### 8.4 UI-Komponenten (NEU! - Phase 8.5)
+- [x] Badge-Komponente für Invoice-Status ✅
+- [x] Status-Panel für Invoice-Details ✅
+- [x] Dashboard-Widget mit Statistiken ✅
+- [x] Invoice-Index: Nextcloud-Spalte ✅
+- [x] Invoice-Show: Nextcloud-Sektion ✅
+- [x] Dark-Mode Support ✅
+- [x] Responsive Design ✅
+- [x] Nextcloud-Test-Funktion ✅
+- [x] Dokumentation: NEXTCLOUD_UI_INTEGRATION.md ✅
 
-## ✅ Phase 9: Dashboard & Statistiken
+### 8.5 Zusätzliche Features
+- [x] Artisan-Command für Verbindungstest (`nextcloud:test-connection`) ✅
+- [x] Feature-Tests für Nextcloud-Integration ✅
+- [x] Unit-Tests für NextcloudService ✅
+- [x] Dokumentation (NEXTCLOUD_INTEGRATION.md + IMPLEMENTATION_SUMMARY.md) ✅
+- [x] Routes für Reupload und Update hinzugefügt ✅
+- [x] Controller-Methode testNextcloud() hinzugefügt ✅
+
+---## ✅ Phase 9: Dashboard & Statistiken
 
 ### 9.1 Dashboard
 - [ ] Dashboard-Controller
@@ -514,34 +535,49 @@ npm install chart.js  # Für Dashboard-Charts
 - ✅ Tracking-Nummer Verwaltung
 - ✅ Pack-Ansicht mit Image-Caching
 - ✅ Tests für Status- und Shipping-Updates
+- ✅ Nextcloud WebDAV Integration für Rechnungs-Upload (Phase 8)
+- ✅ Unique-Constraint für eine Rechnung pro Bestellung
 
 **Nächste Prioritäten:**
 
-1. **Phase 6: Rechnungserstellung** (teilweise erledigt, PDF & E-Mail)
-   - [ ] Logo-Upload (optional)
-   - [ ] Massen-Aktionen für Rechnungen
+1. **Phase 8: Nextcloud WebDAV Integration** ✅ KOMPLETT!
+   - [x] Backend: NextcloudService, Queue-Jobs, Controller ✅
+   - [x] UI: Status-Anzeige, Reupload-Button, Dashboard-Widget ✅
+   - [x] Dokumentation ✅
 
-2. **Phase 7: E-Mail-System** (teilweise erledigt)
+2. **Phase 3: Store-Management UI**
+   - [ ] Store-Setup-Wizard UI
+   - [ ] Store-Einstellungen UI (SMTP-Test, Nextcloud-Test)
+   - [ ] Formular-Validierung & Requests
+
+3. **Phase 9: Dashboard & Statistiken**
+   - [x] Nextcloud-Widget ✅
+   - [ ] Umsatz-Charts
+   - [ ] Quick-Actions
+   - [ ] Statistik-Berechnungen
+
+4. **Phase 7: E-Mail-System** (teilweise erledigt)
    - [ ] Test-E-Mail-Funktion in Settings
    - [ ] Versandbestätigung-Template
    - [ ] Failed-Jobs-Handling UI
 
-3. **Phase 8: Nextcloud WebDAV Integration**
-   - [ ] WebDAV Client implementieren
-   - [ ] Invoice-Upload zu Nextcloud
-   - [ ] Settings & Verbindungstest
-
-4. **Phase 9: Dashboard & Statistiken**
-   - [ ] Dashboard mit Widgets
-   - [ ] Umsatz-Charts
-   - [ ] Quick-Actions
-
-5. **Phase 3: Store-Management UI**
-   - [ ] Store-Setup-Wizard
-   - [ ] Store-Einstellungen UI
+5. **Phase 10: Brickognize Integration**
+   - [ ] Brickognize API Integration
+   - [ ] Inventory-Management UI
 
 ---
 
-**Stand:** 2025-12-04 (abends)  
-**Aktueller Meilenstein:** Phase 5 (Order-Management) ✅ nahezu komplett - Phase 6-9 als nächstes
+**Stand:** 2025-12-05 (Nextcloud UI komplett!)  
+**Aktueller Meilenstein:** Phase 5-8 ✅ Backend komplett!
 
+**Phase 8 abgeschlossen:**
+- ✅ Nextcloud WebDAV Integration vollständig implementiert
+- ✅ Automatischer Rechnungs-Upload nach Erstellung
+- ✅ Rechnung-Updates mit PDF-Regeneration
+- ✅ Unique-Constraint: eine Rechnung pro Bestellung
+- ✅ Asynchrone Queue-Verarbeitung mit Fehlerbehandlung
+- ✅ Artisan-Commands für Testing und Management
+- ✅ Unit- und Feature-Tests geschrieben
+- ✅ Umfassende Dokumentation erstellt
+
+**Nächste Schritte:** Phase 8 UI + Phase 3 Store-Management UI

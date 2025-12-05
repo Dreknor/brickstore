@@ -50,21 +50,38 @@ Jeder registrierte Benutzer kann seinen eigenen BrickLink-Store verwalten mit:
   - SMTP-Konfiguration pro Store
   - Nextcloud WebDAV-Anbindung
 
-- **Datenbank-Schema**
-  - Orders & Order-Items
-  - Invoices mit deutscher Rechnungslogik
+- **Order-Management** ✅
+  - BrickLink API Sync (Echtzeit)
+  - Order-Status-Updates
+  - Pack-Ansicht mit Bilder-Caching
+  - Versandverfolgung
+
+- **Rechnungssystem** ✅
   - Automatische Rechnungsnummern
-  - Kleinunternehmerregelung (§19 UStG)
+  - Deutsche Compliance (§19 UStG)
+  - PDF-Generierung (DomPDF)
+  - Kleinunternehmerregelung
 
-### 🚧 In Entwicklung (Phase 2-4)
+- **Nextcloud-Integration** ✅ **NEU!**
+  - Automatisches Rechnungs-Backup zu Nextcloud
+  - WebDAV-Anbindung mit Pfad-Platzhaltern
+  - Asynchrone Queue-Verarbeitung
+  - Fehlerbehandlung mit Retries
 
-- Order-Management UI
-- BrickLink API-Synchronisation
-- PDF-Rechnungsgenerierung
-- E-Mail-Versand-System
+- **Datenbank-Schema**
+  - Orders & Order-Items mit Relationships
+  - Invoices mit Upload-Status
+  - Automatische Rechnungsnummern
+  - Unique-Constraint: eine Rechnung pro Bestellung
+
+### 🚧 In Entwicklung (Phase 2-3)
+
+- Store-Setup-Wizard
+- Store-Settings UI
+- E-Mail-Versand-UI
 - Dashboard mit Statistiken
 
-### 📅 Geplant (Phase 5+)
+### 📅 Geplant (Phase 4+)
 
 - Brickognize Kamera-Integration
 - Inventarverwaltung
@@ -167,16 +184,23 @@ Jeder Store benötigt eigene BrickLink API-Credentials:
 
 ## 📚 Dokumentation
 
+### Implementierte Features
+
+- **[NEXTCLOUD_INTEGRATION.md](docs/NEXTCLOUD_INTEGRATION.md)** - Nextcloud WebDAV Setup & Verwendung
+- **[IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md)** - Detaillierte Implementierungsdokumentation
+- **[IMAGE_CACHING.md](docs/IMAGE_CACHING.md)** - Bilder-Caching-System für Order-Items
+
 ### Datenbankstruktur
 
-Siehe [PROGRESS.md](PROGRESS.md) für Details zum Datenbank-Schema.
+Siehe [TODO.md](TODO.md) für Details zum Datenbank-Schema.
 
 **Haupttabellen:**
 - `users` - Benutzerkonten
 - `stores` - BrickLink-Stores (1:1 zu User)
 - `orders` - Bestellungen aus BrickLink
 - `order_items` - Bestellpositionen
-- `invoices` - Generierte Rechnungen
+- `invoices` - Generierte Rechnungen (unique pro Order)
+- `activity_logs` - Audit-Trail
 
 ### Entwickler-Dokumentation
 
@@ -184,11 +208,17 @@ Siehe [PROGRESS.md](PROGRESS.md) für Details zum Datenbank-Schema.
 # Tests ausführen
 php artisan test
 
+# Nextcloud-Verbindung testen
+php artisan nextcloud:test-connection
+
 # Code-Formatierung (Laravel Pint)
 vendor/bin/pint
 
 # Static Analysis (Larastan)
 vendor/bin/phpstan analyse
+
+# Queue-Worker starten
+php artisan queue:work
 ```
 
 ---
@@ -201,27 +231,31 @@ Siehe [TODO.md](TODO.md) für die vollständige Projekt-Roadmap.
 
 - [x] **Phase 1:** Datenbank-Schema & Models ✅
 - [x] **Phase 2:** Authentication & Policies ✅
-- [ ] **Phase 3:** Order-Management UI (In Arbeit)
-- [ ] **Phase 4:** BrickLink API-Integration
-- [ ] **Phase 5:** Rechnungserstellung (PDF)
-- [ ] **Phase 6:** E-Mail-System
-- [ ] **Phase 7:** Nextcloud-Integration
-- [ ] **Phase 8:** Dashboard & Statistiken
-- [ ] **Phase 9:** Brickognize-Integration
+- [x] **Phase 3:** Store-Management Backend ✅
+- [x] **Phase 4:** BrickLink API-Integration ✅
+- [x] **Phase 5:** Order-Management ✅
+- [x] **Phase 6:** Rechnungserstellung (PDF) ✅
+- [x] **Phase 7:** Nextcloud WebDAV Integration ✅
+- [ ] **Phase 8:** Dashboard & Statistiken (UI ausstehend)
+- [ ] **Phase 9:** E-Mail-System UI
+- [ ] **Phase 10:** Brickognize-Integration
 
 ---
 
 ## 🛠️ Tech-Stack
 
-- **Backend:** Laravel 12, PHP 8.2
+- **Backend:** Laravel 12, PHP 8.2+
 - **Frontend:** Blade, Tailwind CSS v4, Alpine.js v3
-- **Datenbank:** MySQL 8.0
+- **Datenbank:** MySQL 8.0+
 - **Testing:** Pest v3
 - **Code-Quality:** Laravel Pint, Larastan
 - **APIs:** 
-  - BrickLink API (OAuth 1.0)
+  - BrickLink API (OAuth 1.0) ✅
+  - Nextcloud WebDAV ✅
   - Brickognize API (geplant)
-- **Dateisystem:** Nextcloud WebDAV
+- **Dateisystem:** 
+  - Lokal: `storage/app/private/`
+  - Remote: Nextcloud WebDAV
 
 ---
 

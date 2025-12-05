@@ -20,38 +20,24 @@ class Feedback extends Model
         'rating',
         'comment',
         'rating_of_bs',
-        'rating_of_td',
-        'rating_of_comm',
-        'rating_of_ship',
-        'rating_of_pack',
-        'can_edit',
-        'can_reply',
-        'feedback_date',
+        'date_rated',
+        'from',
+        'to',
+        'feedback_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'can_edit' => 'boolean',
-            'can_reply' => 'boolean',
-            'feedback_date' => 'datetime',
+            'date_rated' => 'datetime',
         ];
     }
 
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id' ,'bricklink_order_id');
     }
 
-    public function isFromBuyer(): bool
-    {
-        return $this->direction === 'from_buyer';
-    }
-
-    public function isToBuyer(): bool
-    {
-        return $this->direction === 'to_buyer';
-    }
 
     public function getRatingLabel(): string
     {

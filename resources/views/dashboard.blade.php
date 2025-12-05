@@ -108,4 +108,7 @@
         </div>
     </div>
 
+    <!-- Nextcloud Status Widget -->
+    <x-dashboard.nextcloud-widget />
+
 </x-layouts.app>

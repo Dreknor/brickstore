@@ -23,25 +23,26 @@ class FeedbackService
         try {
             $feedbackData = $this->brickLinkService->fetchOrderFeedback($order->store, $order->bricklink_order_id);
 
-            Log::info('Syncing feedback for order', [
-                'orderId' => $order->id,
-                'bricklinkOrderId' => $order->bricklink_order_id,
-                'feedbackData' => $feedbackData,
-            ]);
-
-            // Process "from" feedback (feedback from buyer)
-            if (isset($feedbackData['from'])) {
-                $this->syncFeedbackEntry($order, $feedbackData['from'], 'from_buyer');
+            foreach ($feedbackData as $feedbackdata) {
+                $feedback = Feedback::updateOrCreate(
+                    [
+                        'order_id' => $order->id,
+                        'feedback_id' => $feedbackdata['feedback_id'],
+                    ],
+                    [
+                        'rating' => $feedbackdata['rating'],
+                        'comment' => $feedbackdata['comment'],
+                        'reply' => $feedbackdata['reply'] ?? null,
+                        'rating_of_bs' => $feedbackdata['rating_of_bs'] ?? null,
+                        'date_rated' => $feedbackdata['date_rated'] ?? null,
+                        'from' => $feedbackdata['from'] ?? null,
+                        'to' => $feedbackdata['to'] ?? null,
+                    ]
+                );
             }
 
-            // Process "to" feedback (feedback to buyer)
-            if (isset($feedbackData['to'])) {
-                $this->syncFeedbackEntry($order, $feedbackData['to'], 'to_buyer');
-            }
 
-            Log::info('Feedback synced successfully', [
-                'orderId' => $order->id,
-            ]);
+
         } catch (\Exception $e) {
             Log::error('Failed to sync feedback', [
                 'orderId' => $order->id,
@@ -51,35 +52,7 @@ class FeedbackService
         }
     }
 
-    /**
-     * Sync a single feedback entry
-     */
-    private function syncFeedbackEntry(Order $order, array $data, string $direction): void
-    {
-        $feedbackData = [
-            'order_id' => $order->id,
-            'direction' => $direction,
-            'rating' => $data['rating'] ?? null,
-            'comment' => $data['comment'] ?? null,
-            'rating_of_bs' => $data['rating_of_bs'] ?? null,
-            'rating_of_td' => $data['rating_of_td'] ?? null,
-            'rating_of_comm' => $data['rating_of_comm'] ?? null,
-            'rating_of_ship' => $data['rating_of_ship'] ?? null,
-            'rating_of_pack' => $data['rating_of_pack'] ?? null,
-            'can_edit' => $data['can_edit'] ?? false,
-            'can_reply' => $data['can_reply'] ?? false,
-            'feedback_date' => isset($data['date_rated']) ? $data['date_rated'] : null,
-        ];
 
-        // Find or create feedback entry
-        Feedback::updateOrCreate(
-            [
-                'order_id' => $order->id,
-                'direction' => $direction,
-            ],
-            $feedbackData
-        );
-    }
 
     /**
      * Post feedback to BrickLink

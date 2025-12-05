@@ -270,6 +270,47 @@ class StoreController extends Controller
     }
 
     /**
+     * Test Nextcloud connection
+     */
+    public function testNextcloud()
+    {
+        $store = auth()->user()->store;
+        Gate::authorize('update', $store);
+
+        try {
+            if (! $store->nextcloud_url || ! $store->nextcloud_username || ! $store->nextcloud_password) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nextcloud-Zugangsdaten sind nicht vollständig konfiguriert.',
+                ], 400);
+            }
+
+            $nextcloud = new \App\Services\NextcloudService($store);
+
+            if (! $nextcloud->testConnection()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verbindung zu Nextcloud fehlgeschlagen. Bitte prüfen Sie die Einstellungen.',
+                ], 500);
+            }
+
+            ActivityLogger::info('store.nextcloud.test', 'Nextcloud connection tested successfully', $store);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verbindung zu Nextcloud erfolgreich! ('.trim($store->nextcloud_url, '/').')',
+            ]);
+        } catch (\Exception $e) {
+            ActivityLogger::error('store.nextcloud.test_failed', 'Nextcloud test failed: '.$e->getMessage(), $store);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Nextcloud-Test fehlgeschlagen: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Test SMTP connection
      */
     public function testSmtp()
