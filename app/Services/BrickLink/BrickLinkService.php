@@ -404,6 +404,150 @@ class BrickLinkService
     }
 
     /**
+     * Fetch all inventory items from BrickLink
+     * API: GET /inventories
+     *
+     * @param array $params Optional query parameters (item_type, status, category_id)
+     * @return array List of inventory items
+     * @throws \Exception
+     */
+    public function fetchInventories(Store $store, array $params = []): array
+    {
+        $url = self::API_BASE_URL . '/inventories';
+
+        if (!empty($params)) {
+            $url .= '?' . http_build_query($params);
+        }
+
+        Log::info('Fetching BrickLink inventories', [
+            'params' => $params,
+        ]);
+
+        $response = $this->makeRequest('GET', $url, $store);
+
+        $items = $response['data'] ?? [];
+
+        Log::info('Fetched BrickLink inventories', [
+            'itemCount' => count($items),
+        ]);
+
+        return $items;
+    }
+
+    /**
+     * Fetch a single inventory item by ID
+     * API: GET /inventories/{inventory_id}
+     *
+     * @param int $inventoryId BrickLink Inventory ID
+     * @return array Inventory item data
+     * @throws \Exception
+     */
+    public function fetchInventory(Store $store, int $inventoryId): array
+    {
+        $url = self::API_BASE_URL . '/inventories/' . $inventoryId;
+
+        Log::info('Fetching BrickLink inventory item', [
+            'inventoryId' => $inventoryId,
+        ]);
+
+        $response = $this->makeRequest('GET', $url, $store);
+
+        return $response['data'] ?? [];
+    }
+
+    /**
+     * Create a new inventory item
+     * API: POST /inventories
+     *
+     * @param array $inventoryData Inventory item data
+     * @return array Created inventory item
+     * @throws \Exception
+     */
+    public function createInventory(Store $store, array $inventoryData): array
+    {
+        $url = self::API_BASE_URL . '/inventories';
+
+        Log::info('Creating BrickLink inventory item', [
+            'item_no' => $inventoryData['item']['no'] ?? null,
+            'item_type' => $inventoryData['item']['type'] ?? null,
+        ]);
+
+        $response = $this->makeRequest('POST', $url, $store, $inventoryData);
+
+        Log::info('Created BrickLink inventory item', [
+            'inventoryId' => $response['data']['inventory_id'] ?? null,
+        ]);
+
+        return $response['data'] ?? [];
+    }
+
+    /**
+     * Update an existing inventory item
+     * API: PUT /inventories/{inventory_id}
+     *
+     * @param int $inventoryId BrickLink Inventory ID
+     * @param array $inventoryData Updated inventory data
+     * @return array Updated inventory item
+     * @throws \Exception
+     */
+    public function updateInventory(Store $store, int $inventoryId, array $inventoryData): array
+    {
+        $url = self::API_BASE_URL . '/inventories/' . $inventoryId;
+
+        Log::info('Updating BrickLink inventory item', [
+            'inventoryId' => $inventoryId,
+        ]);
+
+        $response = $this->makeRequest('PUT', $url, $store, $inventoryData);
+
+        return $response['data'] ?? [];
+    }
+
+    /**
+     * Delete an inventory item
+     * API: DELETE /inventories/{inventory_id}
+     *
+     * @param int $inventoryId BrickLink Inventory ID
+     * @return bool Success status
+     * @throws \Exception
+     */
+    public function deleteInventory(Store $store, int $inventoryId): bool
+    {
+        $url = self::API_BASE_URL . '/inventories/' . $inventoryId;
+
+        Log::info('Deleting BrickLink inventory item', [
+            'inventoryId' => $inventoryId,
+        ]);
+
+        $response = $this->makeRequest('DELETE', $url, $store);
+
+        return isset($response['meta']['code']) && $response['meta']['code'] === 200;
+    }
+
+    /**
+     * Fetch catalog item details
+     * API: GET /items/{type}/{no}
+     *
+     * @param string $type Item type (PART, SET, MINIFIG, etc.)
+     * @param string $no Item number
+     * @return array Catalog item data
+     * @throws \Exception
+     */
+    public function fetchCatalogItem(Store $store, string $type, string $no): array
+    {
+        $url = self::API_BASE_URL . '/items/' . urlencode(strtoupper($type)) . '/' . urlencode($no);
+
+        Log::debug('Fetching BrickLink catalog item', [
+            'type' => $type,
+            'no' => $no,
+        ]);
+
+        $response = $this->makeRequest('GET', $url, $store);
+
+        return $response['data'] ?? [];
+    }
+
+    /**
      * Parse remarks field into message entries
      * Looks for timestamp separators (--- YYYY-MM-DD HH:MM:SS ---) to split messages
      *

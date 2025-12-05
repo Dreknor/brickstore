@@ -45,6 +45,10 @@ Route::middleware(['auth', 'store.setup'])->group(function () {
     Route::post('orders/{order}/shipping', [App\Http\Controllers\OrderController::class, 'updateShipping'])->name('orders.update-shipping');
     Route::post('orders/{order}/ship', [App\Http\Controllers\OrderController::class, 'ship'])->name('orders.ship');
 
+    // Inventory
+    Route::resource('inventory', App\Http\Controllers\InventoryController::class);
+    Route::post('inventory/sync', [App\Http\Controllers\InventoryController::class, 'sync'])->name('inventory.sync');
+
     // Feedback
     Route::post('orders/{order}/feedback/sync', [App\Http\Controllers\FeedbackController::class, 'sync'])->name('orders.feedback.sync');
     Route::post('orders/{order}/feedback', [App\Http\Controllers\FeedbackController::class, 'store'])->name('orders.feedback.store');

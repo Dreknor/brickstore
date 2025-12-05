@@ -85,6 +85,11 @@ class Store extends Model
         return $this->hasMany(Invoice::class);
     }
 
+    public function inventories(): HasMany
+    {
+        return $this->hasMany(Inventory::class);
+    }
+
     public function hasBrickLinkCredentials(): bool
     {
         return ! empty($this->bl_consumer_key)
