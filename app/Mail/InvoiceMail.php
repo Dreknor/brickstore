@@ -28,11 +28,12 @@ class InvoiceMail extends Mailable
     {
         $store = $this->invoice->store;
 
+        // Use store's SMTP from address if available, otherwise fall back to email
+        $fromAddress = $store->smtp_from_address ?? $store->user->email;
+        $fromName = $store->smtp_from_name ?? $store->company_name;
+
         return new Envelope(
-            from: new Address(
-                $store->smtp_from_email ?? $store->user->email,
-                $store->smtp_from_name ?? $store->company_name
-            ),
+            from: new Address($fromAddress, $fromName),
             subject: 'Ihre Rechnung '.$this->invoice->invoice_number,
         );
     }

@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('customer_address1')->nullable();
             $table->string('customer_address2')->nullable();
             $table->string('customer_city')->nullable();
+            $table->string('customer_state')->nullable();
             $table->string('customer_postal_code')->nullable();
             $table->string('customer_country')->nullable();
 

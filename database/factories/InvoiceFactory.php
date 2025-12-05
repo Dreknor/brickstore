@@ -25,7 +25,7 @@ class InvoiceFactory extends Factory
 
         return [
             'store_id' => \App\Models\Store::factory(),
-            'order_id' => \App\Models\Order::factory(),
+            'order_id' => null, // Wird überschrieben wenn eine echte Order vorhanden ist
             'invoice_number' => 'RE-'.$invoiceDate->format('Y').'-'.fake()->unique()->numberBetween(1, 9999),
             'invoice_date' => $invoiceDate,
             'service_date' => $invoiceDate,
@@ -34,6 +34,7 @@ class InvoiceFactory extends Factory
             'customer_email' => fake()->email(),
             'customer_address1' => fake()->streetAddress(),
             'customer_city' => fake()->city(),
+            'customer_state' => fake()->optional()->state(),
             'customer_postal_code' => fake()->postcode(),
             'customer_country' => fake()->randomElement(['Deutschland', 'Österreich', 'Schweiz']),
             'subtotal' => $subtotal,

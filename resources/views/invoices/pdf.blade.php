@@ -97,7 +97,7 @@
         }
         .summary-table {
             margin-left: auto;
-            width: 350px;
+            width: 650px;
             font-size: 9pt;
         }
         .summary-table td {
@@ -108,7 +108,7 @@
         }
         .summary-table .value {
             text-align: right;
-            width: 100px;
+            width: 110px;
         }
         .summary-table .total-row {
             font-weight: bold;
@@ -180,9 +180,7 @@
                 {{ $invoice->customer_address2 }}<br>
             @endif
             {{ $invoice->customer_postal_code }} {{ $invoice->customer_city }}
-            @if($invoice->customer_country)
-                <br>{{ $invoice->customer_country }}
-            @endif
+
         </div>
 
         <!-- Rechnungsdetails rechts -->
@@ -202,8 +200,20 @@
                 </tr>
                 <tr>
                     <td>Bestelldatum:</td>
-                    <td>{{ $order->order_date ? $order->order_date->format('d.m. Y') : 'N/A' }}</td>
+                    <td>{{ $order->order_date ? $order->order_date->format('d.m.Y') : 'N/A' }}</td>
                 </tr>
+                @if(!$invoice->is_paid && $invoice->due_date)
+                <tr>
+                    <td>Fällig am:</td>
+                    <td>{{ $invoice->due_date->format('d.m.Y') }}</td>
+                </tr>
+                @endif
+                @if($invoice->is_paid && $invoice->paid_date)
+                <tr>
+                    <td>Bezahlt am:</td>
+                    <td>{{ $invoice->paid_date->format('d.m.Y') }}</td>
+                </tr>
+                @endif
                 <tr>
                     <td>Zahlungsart:</td>
                     <td>{{ $invoice->payment_method ?? 'PayPal (Onsite)' }}</td>
@@ -221,8 +231,8 @@
             <thead>
                 <tr>
                     <th style="width: 12%;">Art.Nr.</th>
-                    <th style="width: 40%;">Artikel</th>
-                    <th style="width: 12%;">Farbe</th>
+                    <th style="width: 38%;">Artikel</th>
+                    <th style="width: 20%;">Farbe</th>
                     <th style="width: 10%;">Zustand</th>
                     <th style="width: 8%;" class="text-center">Anzahl</th>
                     <th style="width: 9%;" class="text-right">Einzelpreis</th>
@@ -255,12 +265,12 @@
                 <tr>
                     <td class="label"></td>
                     <td class="value">Lieferung / Versand:</td>
-                    <td class="value">{{ number_format($invoice->shipping_cost, 2, ',', '.') }} €</td>
+                    <td class="value" style="border-bottom: 1px solid black">{{ number_format($invoice->shipping_cost, 2, ',', '.') }} €</td>
                 </tr>
                 <tr class="total-row">
                     <td class="label"></td>
                     <td class="value">Gesamtbetrag</td>
-                    <td class="value">{{ number_format($invoice->total, 2, ',', '.') }} €</td>
+                    <td class="value"  style="border-bottom: black double 4px">{{ number_format($invoice->total, 2, ',', '.') }} €</td>
                 </tr>
             </table>
         </div>

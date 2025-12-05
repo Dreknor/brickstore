@@ -6,9 +6,11 @@
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
                     Rechnung {{ $invoice->invoice_number }}
                 </h1>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                    Erstellt am {{ $invoice->invoice_date->format('d.m.Y') }}
-                </p>
+                @if($invoice->invoice_date)
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Erstellt am {{ $invoice->invoice_date->format('d.m.Y') }}
+                    </p>
+                @endif
             </div>
             <div class="flex gap-2">
                 <a href="{{ route('invoices.index') }}"
@@ -92,14 +94,24 @@
                             <dt class="text-gray-500 dark:text-gray-400">Kunde:</dt>
                             <dd class="text-gray-900 dark:text-white font-medium">{{ $invoice->customer_name }}</dd>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-gray-500 dark:text-gray-400">Rechnungsdatum:</dt>
-                            <dd class="text-gray-900 dark:text-white">{{ $invoice->invoice_date->format('d.m.Y') }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-gray-500 dark:text-gray-400">Fällig am:</dt>
-                            <dd class="text-gray-900 dark:text-white">{{ $invoice->due_date->format('d.m.Y') }}</dd>
-                        </div>
+                        @if($invoice->invoice_date)
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500 dark:text-gray-400">Rechnungsdatum:</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ $invoice->invoice_date->format('d.m.Y') }}</dd>
+                            </div>
+                        @endif
+                        @if(!$invoice->is_paid && $invoice->due_date)
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500 dark:text-gray-400">Fällig am:</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ $invoice->due_date->format('d.m.Y') }}</dd>
+                            </div>
+                        @endif
+                        @if($invoice->is_paid && $invoice->paid_date)
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500 dark:text-gray-400">Bezahlt am:</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ $invoice->paid_date->format('d.m.Y') }}</dd>
+                            </div>
+                        @endif
                         <div class="flex justify-between pt-2 border-t">
                             <dt class="font-semibold text-gray-900 dark:text-white">Gesamtbetrag:</dt>
                             <dd class="font-bold text-lg text-gray-900 dark:text-white">

@@ -24,6 +24,7 @@ class Invoice extends Model
         'customer_address1',
         'customer_address2',
         'customer_city',
+        'customer_state',
         'customer_postal_code',
         'customer_country',
         'subtotal',

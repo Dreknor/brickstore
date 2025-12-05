@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\BrickLink\ImageCacheService;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,5 +47,47 @@ class OrderItem extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * Get the cached image URL or cache it if not already cached.
+     */
+    protected function cachedImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (empty($this->image_url)) {
+                    return null;
+                }
+
+                $cacheService = app(ImageCacheService::class);
+
+                return $cacheService->cacheImage(
+                    $this->image_url,
+                    $this->item_type,
+                    $this->item_number,
+                    $this->color_id
+                );
+            }
+        );
+    }
+
+    /**
+     * Cache the image for this item.
+     */
+    public function cacheImage(): ?string
+    {
+        if (empty($this->image_url)) {
+            return null;
+        }
+
+        $cacheService = app(ImageCacheService::class);
+
+        return $cacheService->cacheImage(
+            $this->image_url,
+            $this->item_type,
+            $this->item_number,
+            $this->color_id
+        );
     }
 }

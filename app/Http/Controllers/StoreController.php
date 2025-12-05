@@ -26,7 +26,7 @@ class StoreController extends Controller
             Store::create([
                 'user_id' => $user->id,
                 'name' => $user->name."'s Store",
-                'bricklink_store_name' =>  $user->name."'s Store",
+                'bricklink_store_name' => $user->name."'s Store",
                 'is_active' => false,
                 'is_setup_complete' => false,
             ]);
@@ -278,14 +278,50 @@ class StoreController extends Controller
         Gate::authorize('update', $store);
 
         try {
-            // TODO: Implement SMTP test
-            ActivityLogger::info('store.smtp.test', 'SMTP connection tested', $store);
+            if (! $store->hasSmtpCredentials()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'SMTP-Zugangsdaten sind nicht vollständig konfiguriert.',
+                ], 400);
+            }
 
-            return response()->json(['success' => true, 'message' => 'SMTP-Verbindung erfolgreich']);
+            // Configure runtime SMTP mailer
+            config([
+                'mail.mailers.test_smtp' => [
+                    'transport' => 'smtp',
+                    'host' => $store->smtp_host,
+                    'port' => $store->smtp_port,
+                    'encryption' => $store->smtp_encryption ?? 'tls',
+                    'username' => $store->smtp_username,
+                    'password' => $store->smtp_password,
+                    'timeout' => null,
+                    'local_domain' => parse_url(config('app.url', 'http://localhost'), PHP_URL_HOST),
+                ],
+            ]);
+
+            // Send test email using the custom mailer
+            \Mail::mailer('test_smtp')->raw(
+                'Dies ist eine Test-E-Mail von BrickStore. Ihre SMTP-Konfiguration funktioniert korrekt!',
+                function ($message) use ($store) {
+                    $message->to($store->user->email)
+                        ->from($store->smtp_from_address ?? $store->user->email, $store->smtp_from_name ?? $store->company_name)
+                        ->subject('SMTP Test - BrickStore');
+                }
+            );
+
+            ActivityLogger::info('store.smtp.test', 'SMTP connection tested successfully', $store);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Test-E-Mail wurde erfolgreich versendet an '.$store->user->email,
+            ]);
         } catch (\Exception $e) {
             ActivityLogger::error('store.smtp.test_failed', 'SMTP test failed: '.$e->getMessage(), $store);
 
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'SMTP-Test fehlgeschlagen: '.$e->getMessage(),
+            ], 500);
         }
     }
 }

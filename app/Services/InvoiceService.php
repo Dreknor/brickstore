@@ -46,14 +46,32 @@ class InvoiceService
         $store = $order->store;
         $invoiceNumber = $this->generateInvoiceNumber($store);
 
-        $invoice = Invoice::create([
+        // Use values from BrickLink order
+        $subtotal = $order->subtotal ?? 0;
+        $shippingCost = $order->shipping_cost ?? 0;
+
+        // Use VAT if available, otherwise fall back to tax
+        $taxAmount = $order->vat_amount > 0 ? $order->vat_amount : ($order->tax ?? 0);
+        $taxRate = $order->vat_rate ?? 0;
+
+        // Calculate tax rate if not provided
+        if ($store->is_small_business) {
+            $taxRate = 0;
+            $taxAmount = 0;
+        } elseif ($taxRate == 0 && $taxAmount > 0 && ($subtotal + $shippingCost) > 0) {
+            // Calculate tax rate from tax amount
+            $taxRate = round(($taxAmount / ($subtotal + $shippingCost)) * 100, 2);
+        }
+
+        // Use final_total if available, otherwise grand_total
+        $total = $order->final_total > 0 ? $order->final_total : ($order->grand_total ?? ($subtotal + $shippingCost + $taxAmount));
+
+        return Invoice::create([
             'store_id' => $store->id,
             'order_id' => $order->id,
             'invoice_number' => $invoiceNumber,
             'invoice_date' => now(),
-            'service_date' => $order->order_date,
-            'due_date' => now()->addDays(14),
-            'customer_name' => $order->buyer_name,
+            'customer_name' => $order->shipping_name ?? $order->buyer_name,
             'customer_email' => $order->buyer_email,
             'customer_address1' => $order->shipping_address1,
             'customer_address2' => $order->shipping_address2,
@@ -61,21 +79,17 @@ class InvoiceService
             'customer_state' => $order->shipping_state,
             'customer_postal_code' => $order->shipping_postal_code,
             'customer_country' => $order->shipping_country,
-            'subtotal' => $order->subtotal,
-            'shipping_cost' => $order->shipping_cost,
-            'tax_rate' => $store->is_small_business ? 0 : 19,
-            'tax_amount' => $store->is_small_business ? 0 : ($order->subtotal + $order->shipping_cost) * 0.19,
-            'total' => $store->is_small_business
-                ? $order->subtotal + $order->shipping_cost
-                : ($order->subtotal + $order->shipping_cost) * 1.19,
+            'subtotal' => $subtotal,
+            'shipping_cost' => $shippingCost,
+            'tax_rate' => $taxRate,
+            'tax_amount' => $taxAmount,
+            'total' => $total,
             'currency' => $order->currency_code,
             'status' => 'draft',
             'is_paid' => $order->is_paid,
             'paid_date' => $order->paid_date,
             'is_small_business' => $store->is_small_business,
         ]);
-
-        return $invoice;
     }
 
     /**

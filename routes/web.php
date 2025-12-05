@@ -41,7 +41,12 @@ Route::middleware(['auth', 'store.setup'])->group(function () {
     Route::post('orders/{order}/sync', [App\Http\Controllers\OrderController::class, 'sync'])->name('orders.sync');
     Route::post('orders/sync-all', [App\Http\Controllers\OrderController::class, 'syncAll'])->name('orders.sync-all');
     Route::post('orders/{order}/status', [App\Http\Controllers\OrderController::class, 'updateStatus'])->name('orders.update-status');
+    Route::post('orders/{order}/shipping', [App\Http\Controllers\OrderController::class, 'updateShipping'])->name('orders.update-shipping');
     Route::post('orders/{order}/ship', [App\Http\Controllers\OrderController::class, 'ship'])->name('orders.ship');
+
+    // Feedback
+    Route::post('orders/{order}/feedback/sync', [App\Http\Controllers\FeedbackController::class, 'sync'])->name('orders.feedback.sync');
+    Route::post('orders/{order}/feedback', [App\Http\Controllers\FeedbackController::class, 'store'])->name('orders.feedback.store');
 
     // Invoices
     Route::resource('invoices', App\Http\Controllers\InvoiceController::class)->only(['index', 'show']);

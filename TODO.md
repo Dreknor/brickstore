@@ -180,7 +180,7 @@
   - [x] Status-Änderungen
 - [x] Pack-Ansicht
   - [x] Items nach Store Location gruppiert
-  - [x] Vorschaubilder (vorbereitet)
+  - [x] Vorschaubilder mit lokalem Caching
   - [x] Checkbox zum Abhaken
   - [x] Fortschrittsbalken
   - [x] Alpine.js Integration
@@ -193,6 +193,15 @@
 - [x] Status-Badges implementiert (Tailwind)
 - [ ] Status-Enum erstellen (optional)
 - [ ] Status-History (optional)
+
+### 5.5 Image-Caching-System
+- [x] ImageCacheService erstellt
+- [x] Lokales Caching von BrickLink-Bildern
+- [x] Automatisches Caching beim Abruf
+- [x] Artisan-Command zum manuellen Cachen aller Bilder
+- [x] Cache-Statistiken
+- [x] Integration in OrderItem Model
+- [x] Dokumentation erstellt (docs/IMAGE_CACHING.md)
 
 ---
 
@@ -496,17 +505,43 @@ npm install chart.js  # Für Dashboard-Charts
 
 ## 🚀 Nächste Schritte (AKTUELL)
 
-**Phase 1 abgeschlossen! ✅**
+**Phase 1-5 größtenteils abgeschlossen! ✅**
 
-**Jetzt starten wir mit Phase 3 & 4:**
+**Aktuelle Fortschritte:**
+- ✅ Order-Management komplett funktionsfähig
+- ✅ BrickLink API Integration (Orders, Items, Status, Shipping)
+- ✅ Order-Status Update mit BrickLink-Synchronisation
+- ✅ Tracking-Nummer Verwaltung
+- ✅ Pack-Ansicht mit Image-Caching
+- ✅ Tests für Status- und Shipping-Updates
 
-1. **Store-Controller und Routes erstellen**
-2. **BrickLink API Service implementieren**
-3. **Order-Management UI mit Blade + Tailwind**
-4. **Dashboard erstellen**
+**Nächste Prioritäten:**
+
+1. **Phase 6: Rechnungserstellung** (teilweise erledigt, PDF & E-Mail)
+   - [ ] Logo-Upload (optional)
+   - [ ] Massen-Aktionen für Rechnungen
+
+2. **Phase 7: E-Mail-System** (teilweise erledigt)
+   - [ ] Test-E-Mail-Funktion in Settings
+   - [ ] Versandbestätigung-Template
+   - [ ] Failed-Jobs-Handling UI
+
+3. **Phase 8: Nextcloud WebDAV Integration**
+   - [ ] WebDAV Client implementieren
+   - [ ] Invoice-Upload zu Nextcloud
+   - [ ] Settings & Verbindungstest
+
+4. **Phase 9: Dashboard & Statistiken**
+   - [ ] Dashboard mit Widgets
+   - [ ] Umsatz-Charts
+   - [ ] Quick-Actions
+
+5. **Phase 3: Store-Management UI**
+   - [ ] Store-Setup-Wizard
+   - [ ] Store-Einstellungen UI
 
 ---
 
-**Stand:** 2025-12-04  
-**Aktueller Meilenstein:** Phase 1 ✅ abgeschlossen - Phase 3 & 4 (Order-Management) beginnen
+**Stand:** 2025-12-04 (abends)  
+**Aktueller Meilenstein:** Phase 5 (Order-Management) ✅ nahezu komplett - Phase 6-9 als nächstes
 

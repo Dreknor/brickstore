@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Store extends Model
 {
@@ -60,7 +61,6 @@ class Store extends Model
             'is_small_business' => 'boolean',
             'is_setup_complete' => 'boolean',
             'invoice_number_counter' => 'integer',
-            'invoice_number_counter' => 'integer',
             'bl_consumer_key' => 'encrypted',
             'bl_consumer_secret' => 'encrypted',
             'bl_token' => 'encrypted',
@@ -95,10 +95,19 @@ class Store extends Model
 
     public function hasSmtpCredentials(): bool
     {
+
+        Log::debug('Checking SMTP credentials', [
+            'host' => $this->smtp_host,
+            'port' => $this->smtp_port,
+            'username' => $this->smtp_username,
+            'password' => ! empty($this->smtp_password) ? '***' : null,
+            // Do not log password for security reasons
+        ]);
+
+        // Host and port are required
+        // Username and password are optional (e.g. MailHog)
         return ! empty($this->smtp_host)
-            && ! empty($this->smtp_port)
-            && ! empty($this->smtp_username)
-            && ! empty($this->smtp_password);
+            && ! empty($this->smtp_port);
     }
 
     public function hasNextcloudCredentials(): bool

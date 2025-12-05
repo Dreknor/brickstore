@@ -40,40 +40,34 @@ class DatabaseSeeder extends Seeder
             ]);
 
         // Orders mit Items für Test-Store erstellen
-        Order::factory(15)
-            ->has(OrderItem::factory()->count(rand(2, 8)))
-            ->create([
-                'store_id' => $testStore->id,
-            ])->each(function ($order) {
-                // Für 60% der Orders Rechnungen erstellen
-                if (fake()->boolean(60)) {
-                    Invoice::factory()->create([
-                        'store_id' => $order->store_id,
-                        'order_id' => $order->id,
-                        'customer_name' => $order->buyer_name,
-                        'customer_email' => $order->buyer_email,
-                        'customer_address1' => $order->shipping_address1,
-                        'customer_city' => $order->shipping_city,
-                        'customer_postal_code' => $order->shipping_postal_code,
-                        'customer_country' => $order->shipping_country,
-                        'subtotal' => $order->subtotal,
-                        'shipping_cost' => $order->shipping_cost,
-                        'total' => $order->grand_total,
-                    ]);
-                }
-            });
-
-        // Weitere 5 normale Benutzer mit Stores
-        User::factory(5)
-            ->has(
-                Store::factory()
-                    ->withBrickLinkCredentials()
-                    ->has(
-                        Order::factory(rand(5, 15))
-                            ->has(OrderItem::factory()->count(rand(2, 6)))
-                    )
-            )
+        $orders = Order::factory(5)
+            ->for($testStore)
             ->create();
+
+        // OrderItems für jede Order erstellen
+        foreach ($orders as $order) {
+            OrderItem::factory()->count(3)->create(['order_id' => $order->id]);
+
+            // Für 60% der Orders Rechnungen erstellen
+            if (fake()->boolean(60)) {
+                Invoice::factory()->create([
+                    'store_id' => $order->store_id,
+                    'order_id' => $order->id,
+                    'customer_name' => $order->shipping_name ?? $order->buyer_name,
+                    'customer_email' => $order->buyer_email,
+                    'customer_address1' => $order->shipping_address1,
+                    'customer_address2' => $order->shipping_address2,
+                    'customer_city' => $order->shipping_city,
+                    'customer_state' => $order->shipping_state,
+                    'customer_postal_code' => $order->shipping_postal_code,
+                    'customer_country' => $order->shipping_country,
+                    'subtotal' => $order->subtotal,
+                    'shipping_cost' => $order->shipping_cost,
+                    'total' => $order->grand_total,
+                    'currency' => $order->currency_code,
+                ]);
+            }
+        }
 
         $this->command->info('✅ Database seeding completed!');
         $this->command->info('👤 Admin: admin@brickstore.local');

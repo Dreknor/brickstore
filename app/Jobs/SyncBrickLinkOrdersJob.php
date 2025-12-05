@@ -33,7 +33,7 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(BrickLinkService $service): void
     {
         if (! $this->store->hasBrickLinkCredentials()) {
             Log::warning("Store {$this->store->id} has no BrickLink credentials");
@@ -44,17 +44,7 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
         Log::info("Starting BrickLink sync for store: {$this->store->name}");
 
         try {
-            $service = new BrickLinkService($this->store);
-
-            $params = [
-                'direction' => 'in',
-            ];
-
-            if ($this->status) {
-                $params['status'] = $this->status;
-            }
-
-            $orders = $service->getOrders($params);
+            $orders = $service->fetchOrders($this->store, $this->status ?? '');
             $synced = 0;
 
             foreach ($orders as $orderData) {
@@ -64,14 +54,42 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
                     continue;
                 }
 
-                DB::transaction(function () use ($orderData, &$synced) {
-                    $this->syncOrder($orderData);
+                DB::transaction(function () use ($orderData, &$synced, $service) {
+                    // Fetch complete order details from API
+                    try {
+                        $completeOrderData = $service->fetchOrder($this->store, $orderData['order_id']);
+                        $this->syncOrder($completeOrderData, $service);
+                    } catch (\Exception $e) {
+                        // If fetching complete details fails, use the list data as fallback
+                        Log::warning("Could not fetch complete order details for {$orderData['order_id']}, using list data", [
+                            'error' => $e->getMessage(),
+                            'order_id' => $orderData['order_id'],
+                        ]);
+                        $this->syncOrder($orderData, $service);
+                    }
                     $synced++;
                 });
             }
 
             Log::info("Synced {$synced} orders for store: {$this->store->name}");
         } catch (\Exception $e) {
+            // Check if it's an authentication error
+            if (str_contains($e->getMessage(), 'CONSUMER_KEY_UNKNOWN') ||
+                str_contains($e->getMessage(), 'TOKEN_VALUE_UNKNOWN') ||
+                str_contains($e->getMessage(), 'authentication failed')) {
+
+                Log::error("BrickLink API Authentifizierungsfehler für Store {$this->store->name}", [
+                    'error' => $e->getMessage(),
+                    'store_id' => $this->store->id,
+                    'store_name' => $this->store->name,
+                ]);
+
+                // Don't retry authentication errors
+                $this->fail($e);
+
+                return;
+            }
+
             Log::error("BrickLink sync failed for store {$this->store->name}: {$e->getMessage()}");
             throw $e;
         }
@@ -80,7 +98,7 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
     /**
      * Sync individual order
      */
-    protected function syncOrder(array $orderData): void
+    protected function syncOrder(array $orderData, BrickLinkService $service): void
     {
         $order = Order::updateOrCreate(
             [
@@ -88,11 +106,23 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
                 'bricklink_order_id' => $orderData['order_id'],
             ],
             [
+                // Timestamps
                 'order_date' => $orderData['date_ordered'],
+                'date_ordered' => $orderData['date_ordered'],
+                'date_status_changed' => $orderData['date_status_changed'] ?? null,
+
+                // Status & Counts
                 'status' => $orderData['status'],
+                'total_count' => $orderData['total_count'] ?? 0,
+                'unique_count' => $orderData['unique_count'] ?? 0,
+
+                // Buyer Information
                 'buyer_name' => $orderData['buyer_name'] ?? '',
                 'buyer_email' => $orderData['buyer_email'] ?? null,
                 'buyer_username' => $orderData['username'] ?? null,
+                'buyer_order_count' => $orderData['buyer_order_count'] ?? 0,
+
+                // Shipping Address
                 'shipping_name' => $orderData['shipping']['address']['name']['full'] ?? null,
                 'shipping_address1' => $orderData['shipping']['address']['address1'] ?? null,
                 'shipping_address2' => $orderData['shipping']['address']['address2'] ?? null,
@@ -100,35 +130,73 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
                 'shipping_state' => $orderData['shipping']['address']['state'] ?? null,
                 'shipping_postal_code' => $orderData['shipping']['address']['postal_code'] ?? null,
                 'shipping_country' => $orderData['shipping']['address']['country_code'] ?? null,
+
+                // Cost Information
                 'subtotal' => $orderData['cost']['subtotal'] ?? 0,
                 'grand_total' => $orderData['cost']['grand_total'] ?? 0,
+                'final_total' => $orderData['cost']['final_total'] ?? ($orderData['cost']['grand_total'] ?? 0),
                 'shipping_cost' => $orderData['cost']['shipping'] ?? 0,
                 'insurance' => $orderData['cost']['insurance'] ?? 0,
                 'tax' => $orderData['cost']['salesTax'] ?? 0,
                 'discount' => $orderData['cost']['etc1'] ?? 0,
+                'etc1' => $orderData['cost']['etc1'] ?? 0,
+                'etc2' => $orderData['cost']['etc2'] ?? 0,
+                'credit' => $orderData['cost']['credit'] ?? 0,
+                'credit_coupon' => $orderData['cost']['credit_coupon'] ?? 0,
                 'currency_code' => $orderData['cost']['currency_code'] ?? 'EUR',
+
+                // VAT Information
+                'vat_collected_by_bl' => $orderData['vat_collected_by_bl'] ?? false,
+                'vat_rate' => $orderData['cost']['vat_rate'] ?? null,
+                'vat_amount' => $orderData['cost']['vat_amount'] ?? 0,
+                'salesTax_collected_by_bl' => $orderData['salesTax_collected_by_bl'] ?? false,
+
+                // Display Cost (in different currency)
+                'display_currency_code' => $orderData['disp_cost']['currency_code'] ?? null,
+                'disp_subtotal' => $orderData['disp_cost']['subtotal'] ?? null,
+                'disp_grand_total' => $orderData['disp_cost']['grand_total'] ?? null,
+                'disp_final_total' => $orderData['disp_cost']['final_total'] ?? null,
+                'disp_shipping' => $orderData['disp_cost']['shipping'] ?? null,
+                'disp_insurance' => $orderData['disp_cost']['insurance'] ?? null,
+                'disp_etc1' => $orderData['disp_cost']['etc1'] ?? null,
+                'disp_etc2' => $orderData['disp_cost']['etc2'] ?? null,
+                'disp_vat' => $orderData['disp_cost']['vat_amount'] ?? null,
+
+                // Shipping Information
                 'shipping_method' => $orderData['shipping']['method'] ?? null,
+                'tracking_number' => $orderData['shipping']['tracking_no'] ?? null,
+                'tracking_link' => $orderData['shipping']['tracking_link'] ?? null,
+
+                // Payment Information
                 'payment_method' => $orderData['payment']['method'] ?? null,
                 'is_paid' => $orderData['payment']['status'] === 'Received',
+                'paid_date' => isset($orderData['payment']['date_paid']) ? $orderData['payment']['date_paid'] : null,
+
+                // Order Flags
+                'is_filed' => $orderData['is_filed'] ?? false,
+                'drive_thru_sent' => $orderData['drive_thru_sent'] ?? false,
+
+                // Remarks
                 'buyer_remarks' => $orderData['remarks'] ?? null,
+                'seller_remarks' => $orderData['seller_remarks'] ?? null,
+
+                // Sync Status
                 'last_synced_at' => now(),
                 'raw_data' => $orderData,
             ]
         );
 
         // Sync order items
-        $this->syncOrderItems($order, $orderData['order_id']);
+        $this->syncOrderItems($order, $orderData['order_id'], $service);
     }
 
     /**
      * Sync order items
      */
-    protected function syncOrderItems(Order $order, string $bricklinkOrderId): void
+    protected function syncOrderItems(Order $order, string $bricklinkOrderId, BrickLinkService $service): void
     {
-        $service = new BrickLinkService($this->store);
-
         try {
-            $items = $service->getOrderItems($bricklinkOrderId);
+            $items = $service->fetchOrderItems($this->store, $bricklinkOrderId);
 
             // Delete existing items
             $order->items()->delete();
@@ -141,7 +209,7 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
                     $itemData['color_id'] ?? null
                 );
 
-                OrderItem::create([
+                $item = OrderItem::create([
                     'order_id' => $order->id,
                     'item_type' => $itemData['item']['type'] ?? '',
                     'item_number' => $itemData['item']['no'] ?? '',
@@ -157,6 +225,16 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
                     'remarks' => $itemData['remarks'] ?? null,
                     'image_url' => $imageUrl,
                 ]);
+
+                // Cache image in background
+                if ($imageUrl) {
+                    try {
+                        $item->cacheImage();
+                    } catch (\Exception $e) {
+                        // Silently fail - image caching is not critical
+                        Log::debug("Could not cache image for item {$item->id}: {$e->getMessage()}");
+                    }
+                }
             }
         } catch (\Exception $e) {
             Log::warning("Could not sync items for order {$bricklinkOrderId}: {$e->getMessage()}");

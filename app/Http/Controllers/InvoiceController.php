@@ -7,7 +7,10 @@ use App\Models\Order;
 use App\Services\ActivityLogger;
 use App\Services\InvoiceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class InvoiceController extends Controller
 {
@@ -116,10 +119,43 @@ class InvoiceController extends Controller
     public function sendEmail(Invoice $invoice)
     {
         Gate::authorize('update', $invoice);
+        // 1. Definiere einen eindeutigen Schlüssel für diesen dynamischen Mailer
+        // (z.B. basierend auf der User-ID oder einfach 'dynamic_smtp')
+        $mailerName = 'dynamic_smtp';
 
+        $smtpSettings = [
+            'host' => $invoice->store->smtp_host,
+            'port' => $invoice->store->smtp_port,
+            'encryption' => $invoice->store->smtp_encryption ?? 'tls', // 'tls' oder 'ssl'
+            'username' => $invoice->store->smtp_username,
+            'password' => $invoice->store->smtp_password,
+            'from_address' => $invoice->store->smtp_from_address,
+            'from_name' => $invoice->store->smtp_from_name,
+        ];
+
+        // 2. Setze die Konfiguration zur Laufzeit
+        Config::set("mail.mailers.{$mailerName}", [
+            'transport' => 'smtp',
+            'host' => $smtpSettings['host'],
+            'port' => $smtpSettings['port'],
+            'encryption' => $smtpSettings['encryption'], // 'tls' oder 'ssl'
+            'username' => $smtpSettings['username'],
+            'password' => $smtpSettings['password'],
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+        ]);
+
+        // Optional: Auch die "From"-Adresse dynamisch setzen (falls nötig)
+        $fromAddress = $smtpSettings['from_address'] ?? config('mail.from.address');
+        $fromName = $smtpSettings['from_name'] ?? config('mail.from.name');
+
+        // 3. Wähle explizit diesen Mailer aus und versende
+        Mail::mailer($mailerName)
+            ->to($invoice->customer_email)
+            ->send((new \App\Mail\InvoiceMail($invoice))->from($fromAddress, $fromName));
         try {
-            // Queue the email job
-            \App\Jobs\SendInvoiceEmailJob::dispatch($invoice);
+
+            Log::debug("Queuing email for invoice {$invoice->invoice_number} to {$invoice->customer_email}");
 
             return redirect()->back()->with('success', 'Invoice email is being sent');
         } catch (\Exception $e) {

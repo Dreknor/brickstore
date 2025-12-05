@@ -70,17 +70,29 @@
 
                                     <!-- Vorschaubild -->
                                     <div class="w-16 h-16 flex-shrink-0">
-                                        @if($item->image_url)
-                                            <img src="{{ $item->image_url }}"
+                                        @if($item->cached_image_url)
+                                            <img src="{{ $item->cached_image_url }}"
                                                  alt="{{ $item->item_name }}"
                                                  onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center\'><i class=\'fa-solid fa-cube text-gray-400 text-2xl\'></i></div>';"
-                                                 class="w-full h-full object-contain rounded bg-white dark:bg-gray-700 p-1">
+                                                 class="w-full h-full object-contain rounded bg-white dark:bg-gray-700 p-1"
+                                                 loading="lazy">
                                         @else
                                             <div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
                                                 <i class="fa-solid fa-cube text-gray-400 text-2xl"></i>
                                             </div>
                                         @endif
                                     </div>
+
+                                    <!-- Aufbewahrungsort Indicator -->
+                                    <div>
+                                        @if($item->remarks)
+                                            <span class="px-3 py-2 text-xs font-semibold rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                                                  title="Aufbewahrungsort: {{ $item->remarks }}">
+                                                {{ $item->remarks }}
+                                            </span>
+                                        @endif
+                                    </div>
+
 
                                     <!-- Item Info -->
                                     <div class="flex-1 min-w-0">

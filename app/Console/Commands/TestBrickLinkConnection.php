@@ -59,10 +59,10 @@ class TestBrickLinkConnection extends Command
             $this->line('  → Token Secret Length: '.strlen($store->bl_token_secret ?? ''));
 
             try {
-                $service = new BrickLinkService($store);
+                $service = new BrickLinkService;
 
                 $this->info('  → Fetching orders...');
-                $orders = $service->getOrders(['direction' => 'in']);
+                $orders = $service->fetchOrders($store);
 
                 $this->info('  ✓ Successfully connected to BrickLink API');
                 $this->info('  → Found '.count($orders).' orders');

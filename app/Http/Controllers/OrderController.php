@@ -65,7 +65,7 @@ class OrderController extends Controller
     {
         Gate::authorize('view', $order);
 
-        $order->load('items', 'invoice');
+        $order->load('items', 'invoice', 'feedback');
 
         return view('orders.show', compact('order'));
     }
@@ -134,8 +134,8 @@ class OrderController extends Controller
         Log::debug('Synchronizing BrickLink order', ['orderId' => $order->bricklink_order_id]);
 
         try {
-            $service = new BrickLinkService($order->store);
-            $orderData = $service->getOrder($order->bricklink_order_id);
+            $service = new BrickLinkService;
+            $orderData = $service->fetchOrder($order->store, $order->bricklink_order_id);
 
             Log::debug('BrickLink order data', ['orderData' => $orderData]);
 
@@ -166,6 +166,11 @@ class OrderController extends Controller
             return redirect()->back()->with('error', 'No store configured');
         }
 
+        // Check if store has BrickLink credentials
+        if (! $store->hasBrickLinkCredentials()) {
+            return redirect()->back()->with('error', 'BrickLink API credentials are not configured. Please update your store settings.');
+        }
+
         // Dispatch job to queue
         \App\Jobs\SyncBrickLinkOrdersJob::dispatch($store, null, 7);
 
@@ -175,54 +180,133 @@ class OrderController extends Controller
     /**
      * Update order status.
      */
-    public function updateStatus(Request $request, Order $order)
+    public function updateStatus(\App\Http\Requests\UpdateOrderStatusRequest $request, Order $order)
     {
         Gate::authorize('update', $order);
 
-        $request->validate([
-            'status' => 'required|string',
+        $validated = $request->validated();
+
+        $service = new BrickLinkService;
+        $updatedOrderData = $service->updateOrderStatus($order->store, $order->bricklink_order_id, $validated['status']);
+
+        // Use the status returned from BrickLink to ensure synchronization
+        $newStatus = $updatedOrderData['status'] ?? $validated['status'];
+
+        Log::info('Order status updated successfully', [
+            'orderId' => $order->bricklink_order_id,
+            'requestedStatus' => $validated['status'],
+            'actualStatus' => $newStatus,
         ]);
 
-        try {
-            $service = new BrickLinkService($order->store);
-            $service->updateOrderStatus($order->bricklink_order_id, $request->status);
+        $order->update([
+            'status' => $newStatus,
+            'date_status_changed' => now(),
+        ]);
 
-            $order->update([
-                'status' => $request->status,
+        ActivityLogger::info('order.status.updated', "Status der Bestellung {$order->bricklink_order_id} geändert zu: {$newStatus}", $order);
+
+        return redirect()->back()->with('success', 'Bestellstatus erfolgreich aktualisiert');
+
+    }
+
+    /**
+     * Update order shipping information and tracking number.
+     */
+    public function updateShipping(\App\Http\Requests\UpdateOrderShippingRequest $request, Order $order)
+    {
+        Gate::authorize('update', $order);
+
+        try {
+            $validated = $request->validated();
+
+            $service = new BrickLinkService;
+
+            // Prepare shipping data for BrickLink
+            $shippingData = [
+                'tracking_no' => $validated['tracking_number'],
+            ];
+
+            if (isset($validated['tracking_link'])) {
+                $shippingData['tracking_link'] = $validated['tracking_link'];
+            }
+
+            // Update shipping info on BrickLink
+            $service->updateOrderShipping($order->store, $order->bricklink_order_id, $shippingData);
+
+            // Update local order
+            $updateData = [
+                'tracking_number' => $validated['tracking_number'],
+            ];
+
+            if (isset($validated['tracking_link'])) {
+                $updateData['tracking_link'] = $validated['tracking_link'];
+            }
+
+            $order->update($updateData);
+
+            ActivityLogger::info('order.shipping.updated', "Sendungsverfolgung für Bestellung {$order->bricklink_order_id} aktualisiert: {$validated['tracking_number']}", $order);
+
+            return redirect()->back()->with('success', 'Sendungsverfolgung erfolgreich aktualisiert');
+        } catch (\Exception $e) {
+            Log::error('Failed to update order shipping', [
+                'orderId' => $order->bricklink_order_id,
+                'error' => $e->getMessage(),
             ]);
 
-            return redirect()->back()->with('success', 'Order status updated successfully');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to update order status: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Fehler beim Aktualisieren der Sendungsverfolgung: '.$e->getMessage());
         }
     }
 
     /**
      * Mark order as shipped.
      */
-    public function ship(Request $request, Order $order)
+    public function ship(\App\Http\Requests\UpdateOrderShippingRequest $request, Order $order)
     {
         Gate::authorize('update', $order);
 
-        $request->validate([
-            'tracking_number' => 'nullable|string',
-        ]);
-
-        $order->update([
-            'status' => 'Shipped',
-            'shipped_date' => now(),
-            'tracking_number' => $request->tracking_number,
-        ]);
-
         try {
-            $service = new BrickLinkService($order->store);
-            $service->updateOrderStatus($order->bricklink_order_id, 'Shipped');
+            $validated = $request->validated();
+
+            $service = new BrickLinkService;
+
+            // Update status to Shipped
+            $service->updateOrderStatus($order->store, $order->bricklink_order_id, 'Shipped');
+
+            // Update shipping info if tracking number provided
+            $shippingData = [
+                'tracking_no' => $validated['tracking_number'],
+            ];
+
+            if (isset($validated['tracking_link'])) {
+                $shippingData['tracking_link'] = $validated['tracking_link'];
+            }
+
+            $service->updateOrderShipping($order->store, $order->bricklink_order_id, $shippingData);
+
+            // Update local order
+            $updateData = [
+                'status' => 'Shipped',
+                'shipped_date' => now(),
+                'date_status_changed' => now(),
+                'tracking_number' => $validated['tracking_number'],
+            ];
+
+            if (isset($validated['tracking_link'])) {
+                $updateData['tracking_link'] = $validated['tracking_link'];
+            }
+
+            $order->update($updateData);
+
+            ActivityLogger::info('order.shipped', "Bestellung {$order->bricklink_order_id} als versendet markiert", $order);
+
+            return redirect()->back()->with('success', 'Bestellung erfolgreich als versendet markiert');
         } catch (\Exception $e) {
-            // Log error but don't fail the request
+            Log::error('Failed to mark order as shipped', [
+                'orderId' => $order->bricklink_order_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Fehler beim Markieren der Bestellung als versendet: '.$e->getMessage());
         }
-
-        ActivityLogger::info('order.shipped', "Order {$order->bricklink_order_id} marked as shipped", $order);
-
-        return redirect()->back()->with('success', 'Order marked as shipped');
     }
 }
