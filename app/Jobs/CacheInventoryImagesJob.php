@@ -44,8 +44,10 @@ class CacheInventoryImagesJob implements ShouldQueue
         ]);
 
         $query = Inventory::where('store_id', $this->storeId)
-            ->whereNotNull('image_url')
-            ->where('image_url', '!=', '');
+            ->whereNull('image_url')
+            ->orWhere(function ($q) {
+                $q->where('image_url', 'not like', asset('storage/') . '%');
+            });
 
         if ($this->limit) {
             $query->limit($this->limit);
