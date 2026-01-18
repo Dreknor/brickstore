@@ -164,7 +164,9 @@ class Inventory extends Model
     }
 
     /**
-     * Get the cached image URL or cache it if not already cached.
+     * Get the cached image URL.
+     * If the image URL is already a local storage URL, return it directly.
+     * Otherwise, return the original URL (caching should be done via the CacheInventoryImagesJob).
      */
     protected function cachedImageUrl(): Attribute
     {
@@ -174,14 +176,15 @@ class Inventory extends Model
                     return null;
                 }
 
-                $cacheService = app(ImageCacheService::class);
+                // If image is already cached locally (starts with /storage/), return it
+                if (str_starts_with($this->image_url, '/storage/') ||
+                    str_starts_with($this->image_url, 'http') && str_contains($this->image_url, '/storage/')) {
+                    return $this->image_url;
+                }
 
-                return $cacheService->cacheImage(
-                    $this->image_url,
-                    $this->item_type,
-                    $this->item_no,
-                    $this->color_id
-                );
+                // Otherwise return the original URL
+                // Note: Use the "Bilder cachen" button to cache all images at once
+                return $this->image_url;
             }
         );
     }

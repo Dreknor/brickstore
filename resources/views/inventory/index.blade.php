@@ -47,6 +47,43 @@
         </div>
     @endif
 
+    @if(session('info'))
+        <div class="mb-6 p-4 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 rounded-lg">
+            <i class="fa-solid fa-info-circle mr-2"></i>
+            {{ session('info') }}
+        </div>
+    @endif
+
+    @php
+        $externalImagesCount = \App\Models\Inventory::where('store_id', auth()->user()->store?->id ?? 0)
+            ->whereNotNull('image_url')
+            ->where('image_url', 'NOT LIKE', '%/storage/%')
+            ->where('image_url', '!=', '')
+            ->count();
+    @endphp
+
+    @if($externalImagesCount > 0)
+        <div class="mb-6 p-4 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-400 rounded-lg">
+            <div class="flex items-start gap-3">
+                <i class="fa-solid fa-images text-xl mt-0.5"></i>
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-1">Bilder-Cache ausstehend</h3>
+                    <p class="text-sm mb-3">
+                        {{ $externalImagesCount }} {{ $externalImagesCount === 1 ? 'Bild muss' : 'Bilder müssen' }} noch lokal gecacht werden.
+                        Das Cachen verbessert die Ladegeschwindigkeit und reduziert externe API-Anfragen.
+                    </p>
+                    <form action="{{ route('inventory.cache-images') }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors text-sm font-medium">
+                            <i class="fa-solid fa-download mr-2"></i>
+                            Jetzt {{ $externalImagesCount }} {{ $externalImagesCount === 1 ? 'Bild' : 'Bilder' }} cachen
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Filters -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 p-6">
         <form method="GET" action="{{ route('inventory.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">

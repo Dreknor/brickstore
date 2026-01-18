@@ -431,14 +431,27 @@ class InventoryController extends Controller
         Gate::authorize('update', $store);
 
         try {
+            // Count images that need to be cached
+            $imagesToCache = \App\Models\Inventory::where('store_id', $store->id)
+                ->whereNotNull('image_url')
+                ->where('image_url', 'NOT LIKE', '%/storage/%')
+                ->where('image_url', '!=', '')
+                ->count();
+
+            if ($imagesToCache === 0) {
+                return redirect()
+                    ->route('inventory.index')
+                    ->with('info', '✅ Alle Bilder sind bereits gecacht!');
+            }
+
             \App\Jobs\CacheInventoryImagesJob::dispatch($store->id)
                 ->onQueue('default');
 
             return redirect()
                 ->route('inventory.index')
-                ->with('success', 'Image caching job started. This may take a few minutes.');
+                ->with('success', "🚀 Bild-Caching gestartet für {$imagesToCache} Bilder. Dies kann einige Minuten dauern. Die Seite aktualisiert sich automatisch, wenn die Bilder fertig sind.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to start image caching: ' . $e->getMessage());
+            return back()->with('error', 'Fehler beim Starten des Bild-Cachings: ' . $e->getMessage());
         }
     }
 }

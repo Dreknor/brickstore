@@ -57,6 +57,11 @@ class CacheInventoryImagesJob implements ShouldQueue
 
         foreach ($inventories as $inventory) {
             try {
+                // Überspringe bereits gecachte Bilder (die mit /storage/ beginnen)
+                if (str_starts_with($inventory->image_url, asset('storage/'))) {
+                    continue;
+                }
+
                 $cachedUrl = $imageCacheService->cacheImage(
                     $inventory->image_url,
                     $inventory->item_type,
