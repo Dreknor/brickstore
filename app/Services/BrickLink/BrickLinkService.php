@@ -712,7 +712,7 @@ class BrickLinkService
                         'Content-Type' => 'application/json',
                         'User-Agent' => 'BrickStore/1.0 (Laravel App)',
                     ],
-                    'timeout' => 30,
+                    'timeout' => 60, // Increased timeout to 60 seconds for large inventory requests
                 ];
 
                 // Detailed request logging for debugging

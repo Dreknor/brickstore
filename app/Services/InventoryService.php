@@ -43,55 +43,77 @@ class InventoryService
             $updated = 0;
             $errors = [];
 
-            DB::beginTransaction();
+            // Process items in chunks to avoid memory issues and long transactions
+            $chunkSize = 100;
+            $chunks = array_chunk($brickLinkItems, $chunkSize);
+            $totalChunks = count($chunks);
 
-            foreach ($brickLinkItems as $blItem) {
-                try {
-                    $wasNew = !Inventory::where('inventory_id', $blItem['inventory_id'])->exists();
+            Log::info('Processing inventory in chunks', [
+                'total_items' => count($brickLinkItems),
+                'chunk_size' => $chunkSize,
+                'total_chunks' => $totalChunks,
+            ]);
 
-                    $inventory = $this->syncInventoryItem($store, $blItem);
-                    $synced++;
+            foreach ($chunks as $chunkIndex => $chunk) {
+                Log::info("Processing chunk {$chunkIndex}/{$totalChunks}");
 
-                    if ($wasNew) {
-                        $created++;
-                        // Log creation
-                        \App\Services\ActivityLogger::info(
-                            'inventory.item.synced.created',
-                            "New inventory item synced: {$inventory->item_no}",
-                            $inventory,
-                            [
-                                'item_no' => $inventory->item_no,
-                                'item_type' => $inventory->item_type,
-                                'quantity' => $inventory->quantity,
-                            ]
-                        );
-                    } else {
-                        $updated++;
-                        // Log update
-                        \App\Services\ActivityLogger::debug(
-                            'inventory.item.synced.updated',
-                            "Inventory item updated: {$inventory->item_no}",
-                            $inventory,
-                            [
-                                'item_no' => $inventory->item_no,
-                                'item_type' => $inventory->item_type,
-                                'quantity' => $inventory->quantity,
-                            ]
-                        );
+                DB::beginTransaction();
+
+                foreach ($chunk as $blItem) {
+                    try {
+                        $wasNew = !Inventory::where('inventory_id', $blItem['inventory_id'])->exists();
+
+                        // Skip image fetching during sync to speed up the process
+                        $inventory = $this->syncInventoryItem($store, $blItem, false);
+                        $synced++;
+
+                        if ($wasNew) {
+                            $created++;
+                            // Log creation
+                            \App\Services\ActivityLogger::info(
+                                'inventory.item.synced.created',
+                                "New inventory item synced: {$inventory->item_no}",
+                                $inventory,
+                                [
+                                    'item_no' => $inventory->item_no,
+                                    'item_type' => $inventory->item_type,
+                                    'quantity' => $inventory->quantity,
+                                ]
+                            );
+                        } else {
+                            $updated++;
+                            // Log update (only for debug)
+                            if ($chunkIndex === 0 || $synced % 50 === 0) {
+                                \App\Services\ActivityLogger::debug(
+                                    'inventory.item.synced.updated',
+                                    "Inventory item updated: {$inventory->item_no}",
+                                    $inventory,
+                                    [
+                                        'item_no' => $inventory->item_no,
+                                        'item_type' => $inventory->item_type,
+                                        'quantity' => $inventory->quantity,
+                                    ]
+                                );
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        $errors[] = [
+                            'inventory_id' => $blItem['inventory_id'] ?? null,
+                            'error' => $e->getMessage(),
+                        ];
+                        Log::error('Failed to sync inventory item', [
+                            'inventory_id' => $blItem['inventory_id'] ?? null,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
-                } catch (\Exception $e) {
-                    $errors[] = [
-                        'inventory_id' => $blItem['inventory_id'] ?? null,
-                        'error' => $e->getMessage(),
-                    ];
-                    Log::error('Failed to sync inventory item', [
-                        'inventory_id' => $blItem['inventory_id'] ?? null,
-                        'error' => $e->getMessage(),
-                    ]);
                 }
-            }
 
-            DB::commit();
+                DB::commit();
+
+                Log::info("Chunk {$chunkIndex}/{$totalChunks} completed", [
+                    'synced_so_far' => $synced,
+                ]);
+            }
 
             Log::info('Inventory sync completed', [
                 'store_id' => $store->id,
@@ -153,7 +175,7 @@ class InventoryService
     /**
      * Sync a single inventory item
      */
-    public function syncInventoryItem(Store $store, array $blItem): Inventory
+    public function syncInventoryItem(Store $store, array $blItem, bool $fetchImage = true): Inventory
     {
         $data = $this->mapBrickLinkToInventory($blItem);
         $data['store_id'] = $store->id;
@@ -173,8 +195,8 @@ class InventoryService
             }
         }
 
-        // Versuche Bild-URL zu laden wenn noch nicht vorhanden
-        if (empty($data['image_url'])) {
+        // Versuche Bild-URL zu laden wenn noch nicht vorhanden und fetchImage aktiviert ist
+        if ($fetchImage && empty($data['image_url'])) {
             try {
                 $imageData = $this->brickLinkService->fetchCatalogItemImage(
                     $store,

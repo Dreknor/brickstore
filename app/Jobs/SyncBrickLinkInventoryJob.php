@@ -17,6 +17,7 @@ class SyncBrickLinkInventoryJob implements ShouldQueue
 
     public int $tries = 3;
     public int $backoff = 60; // seconds
+    public int $timeout = 600; // 10 minutes timeout for large inventories
 
     /**
      * Create a new job instance.

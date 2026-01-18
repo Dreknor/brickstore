@@ -349,16 +349,29 @@ class InventoryController extends Controller
         }
 
         try {
-            $result = $this->inventoryService->syncInventoryFromBrickLink($store, $params);
+            // Check if we should run async (default) or sync (for small inventories)
+            $runAsync = $request->boolean('async', true);
 
-            return redirect()
-                ->route('inventory.index')
-                ->with('success', sprintf(
-                    'Inventory synced: %d total, %d created, %d updated',
-                    $result['total'],
-                    $result['created'],
-                    $result['updated']
-                ));
+            if ($runAsync) {
+                // Dispatch job to run in background
+                \App\Jobs\SyncBrickLinkInventoryJob::dispatch($store, $params);
+
+                return redirect()
+                    ->route('inventory.index')
+                    ->with('success', '🔄 Inventory sync started in background. This may take a few minutes for large inventories. You can continue working while the sync runs.');
+            } else {
+                // Run synchronously (for testing or small inventories)
+                $result = $this->inventoryService->syncInventoryFromBrickLink($store, $params);
+
+                return redirect()
+                    ->route('inventory.index')
+                    ->with('success', sprintf(
+                        '✅ Inventory synced: %d total, %d created, %d updated',
+                        $result['total'],
+                        $result['created'],
+                        $result['updated']
+                    ));
+            }
         } catch (\Exception $e) {
             return back()->with('error', 'Inventory sync failed: ' . $e->getMessage());
         }
