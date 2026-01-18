@@ -13,8 +13,9 @@ class CacheInventoryImagesCommand extends Command
      */
     protected $signature = 'inventory:cache-images
                             {store_id? : The ID of the store to cache images for}
-                            {--limit= : Limit the number of images to cache}
-                            {--sync : Run synchronously instead of dispatching a job}';
+                            {--limit=10 : Limit the number of images to cache per batch}
+                            {--sync : Run synchronously instead of dispatching a job}
+                            {--no-chain : Disable automatic chaining of batches}';
 
     /**
      * The console command description.
@@ -27,8 +28,9 @@ class CacheInventoryImagesCommand extends Command
     public function handle(): int
     {
         $storeId = $this->argument('store_id');
-        $limit = $this->option('limit') ? (int) $this->option('limit') : null;
+        $limit = (int) $this->option('limit');
         $sync = $this->option('sync');
+        $autoChain = !$this->option('no-chain');
 
         if ($storeId) {
             $store = Store::find($storeId);
@@ -39,10 +41,11 @@ class CacheInventoryImagesCommand extends Command
             }
 
             $this->info("Caching images for store: {$store->name} (ID: {$store->id})");
+            $this->info("Batch size: {$limit} images" . ($autoChain ? ' (will auto-chain if needed)' : ''));
 
             if ($sync) {
                 // Run synchronously
-                $job = new CacheInventoryImagesJob($store->id, $limit);
+                $job = new CacheInventoryImagesJob($store->id, $limit, $autoChain);
                 $job->handle(
                     app(\App\Services\BrickLink\ImageCacheService::class),
                     app(\App\Services\BrickLink\CatalogItemService::class)
@@ -50,7 +53,7 @@ class CacheInventoryImagesCommand extends Command
                 $this->info('Image caching completed.');
             } else {
                 // Dispatch as job
-                CacheInventoryImagesJob::dispatch($store->id, $limit);
+                CacheInventoryImagesJob::dispatch($store->id, $limit, $autoChain);
                 $this->info('Image caching job dispatched.');
             }
         } else {
@@ -63,18 +66,19 @@ class CacheInventoryImagesCommand extends Command
             }
 
             $this->info("Found {$stores->count()} store(s). Dispatching image caching jobs...");
+            $this->info("Batch size: {$limit} images per store" . ($autoChain ? ' (will auto-chain if needed)' : ''));
 
             foreach ($stores as $store) {
                 $this->line("- {$store->name} (ID: {$store->id})");
 
                 if ($sync) {
-                    $job = new CacheInventoryImagesJob($store->id, $limit);
+                    $job = new CacheInventoryImagesJob($store->id, $limit, $autoChain);
                     $job->handle(
                         app(\App\Services\BrickLink\ImageCacheService::class),
                         app(\App\Services\BrickLink\CatalogItemService::class)
                     );
                 } else {
-                    CacheInventoryImagesJob::dispatch($store->id, $limit);
+                    CacheInventoryImagesJob::dispatch($store->id, $limit, $autoChain);
                 }
             }
 

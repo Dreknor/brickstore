@@ -23,14 +23,20 @@ class CacheInventoryImagesJob implements ShouldQueue
     /**
      * The number of seconds the job can run before timing out.
      */
-    public int $timeout = 120;
+    public int $timeout = 60;
+
+    /**
+     * Default batch size for processing images.
+     */
+    public const DEFAULT_BATCH_SIZE = 10;
 
     /**
      * Create a new job instance.
      */
     public function __construct(
         public int $storeId,
-        public ?int $limit = null
+        public ?int $limit = self::DEFAULT_BATCH_SIZE,
+        public bool $autoChain = true
     ) {}
 
     /**
@@ -156,6 +162,28 @@ class CacheInventoryImagesJob implements ShouldQueue
                 'failed' => $failed,
             ]
         );
+
+        // Prüfe, ob noch mehr Inventare zu verarbeiten sind
+        if ($this->autoChain && $inventories->count() >= ($this->limit ?? self::DEFAULT_BATCH_SIZE)) {
+            $remainingCount = Inventory::where('store_id', $this->storeId)
+                ->where(function ($q) {
+                    $q->whereNull('image_url')
+                        ->orWhere('image_url', '')
+                        ->orWhere('image_url', 'not like', asset('storage/') . '%');
+                })
+                ->count();
+
+            if ($remainingCount > 0) {
+                Log::info('Dispatching next batch for image caching', [
+                    'store_id' => $this->storeId,
+                    'remaining' => $remainingCount,
+                ]);
+
+                // Dispatch nächsten Batch mit einer kleinen Verzögerung
+                self::dispatch($this->storeId, $this->limit, true)
+                    ->delay(now()->addSeconds(5));
+            }
+        }
     }
 }
 

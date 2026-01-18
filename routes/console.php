@@ -16,3 +16,13 @@ Schedule::command('bricklink:sync-orders --days=7')
     ->onFailure(function () {
         \Log::error('BrickLink order sync failed');
     });
+
+// Schedule inventory image caching - runs every minute
+Schedule::command('inventory:process-image-queue')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->onFailure(function () {
+        \Log::error('Inventory image caching queue processing failed');
+    });
+

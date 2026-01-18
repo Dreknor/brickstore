@@ -126,7 +126,11 @@ class InventoryService
 
             // Dispatch job to cache images in the background
             if ($synced > 0) {
-                CacheInventoryImagesJob::dispatch($store->id)
+                CacheInventoryImagesJob::dispatch(
+                    $store->id,
+                    CacheInventoryImagesJob::DEFAULT_BATCH_SIZE,
+                    true
+                )
                     ->onQueue('default')
                     ->delay(now()->addSeconds(5)); // Delay to avoid overloading
             }

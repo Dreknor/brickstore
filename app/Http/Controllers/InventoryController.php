@@ -443,7 +443,11 @@ class InventoryController extends Controller
                     ->with('info', '✅ Alle Bilder sind bereits gecacht!');
             }
 
-            \App\Jobs\CacheInventoryImagesJob::dispatch($store->id)
+            \App\Jobs\CacheInventoryImagesJob::dispatch(
+                $store->id,
+                \App\Jobs\CacheInventoryImagesJob::DEFAULT_BATCH_SIZE,
+                true
+            )
                 ->onQueue('default');
 
             return redirect()
