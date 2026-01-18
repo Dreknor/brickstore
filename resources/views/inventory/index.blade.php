@@ -223,12 +223,13 @@
                                     <div class="flex items-start gap-3">
                                         <!-- Artikel-Bild -->
                                         <div class="w-12 h-12 flex-shrink-0">
-                                            @if($inventory->cached_image_url)
-                                                <img src="{{ $inventory->cached_image_url }}"
+                                            @if($inventory->image_url)
+                                                <img src="{{ $inventory->image_url }}"
                                                      alt="{{ $inventory->item_no }}"
-                                                     onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center\'><i class=\'fa-solid fa-cube text-gray-400\'></i></div>';"
+                                                     onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center text-xs text-gray-500\' title=\'Bild konnte nicht geladen werden: {{ addslashes($inventory->image_url) }}\'><i class=\'fa-solid fa-image-slash\'></i></div>';"
                                                      class="w-full h-full object-contain rounded bg-white dark:bg-gray-700 p-1"
-                                                     loading="lazy">
+                                                     loading="lazy"
+                                                     title="Image: {{ $inventory->image_url }}">
                                             @else
                                                 <div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
                                                     <i class="fa-solid {{ $inventory->item_type === 'PART' ? 'fa-cube' : ($inventory->item_type === 'SET' ? 'fa-boxes-stacked' : ($inventory->item_type === 'MINIFIG' ? 'fa-user' : 'fa-box')) }} text-gray-400"></i>

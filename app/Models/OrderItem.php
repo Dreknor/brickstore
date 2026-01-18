@@ -50,24 +50,15 @@ class OrderItem extends Model
     }
 
     /**
-     * Get the cached image URL or cache it if not already cached.
+     * Get the cached image URL.
+     * Returns the image URL as-is (can be local or external).
      */
     protected function cachedImageUrl(): Attribute
     {
         return Attribute::make(
             get: function () {
-                if (empty($this->image_url)) {
-                    return null;
-                }
-
-                $cacheService = app(ImageCacheService::class);
-
-                return $cacheService->cacheImage(
-                    $this->image_url,
-                    $this->item_type,
-                    $this->item_number,
-                    $this->color_id
-                );
+                // Return the image URL as-is
+                return $this->image_url;
             }
         );
     }
