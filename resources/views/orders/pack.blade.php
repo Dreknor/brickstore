@@ -16,6 +16,14 @@
                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
                         Zurück
                     </a>
+                    @if($order->status !== 'Shipped' && !$order->shipped_date)
+                        <a href="{{ route('orders.shipping-label', $order) }}"
+                           class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                           target="_blank"
+                           title="Versandetikett drucken">
+                            <i class="fa-solid fa-file-pdf"></i> Versandetikett
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -57,89 +65,101 @@
                     <!-- Items -->
                     <div class="divide-y divide-gray-200 dark:divide-gray-700">
                         @foreach($items as $item)
-                            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                  x-data="{ packed: {{ $item->is_packed ? 'true' : 'false' }} }">
-                                <div class="flex items-center gap-4">
+                                <div class="flex items-start gap-6">
                                     <!-- Checkbox -->
-                                    <div>
+                                    <div class="pt-2">
                                         <input type="checkbox"
                                                x-model="packed"
                                                @change="togglePacked({{ $item->id }}, $event.target.checked)"
-                                               class="w-6 h-6 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                               class="w-8 h-8 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer">
+                                    </div>
+                                    <!-- GROSSE Anzahl-Anzeige -->
+                                    <div class="flex-shrink-0 text-center min-w-[120px]">
+                                        <div class="px-6 py-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-2 border-blue-300 dark:border-blue-600">
+                                            <div class="text-5xl font-black text-gray-900 dark:text-white leading-none">
+                                                {{ $item->quantity }}
+                                            </div>
+                                            <div class="text-sm font-semibold text-gray-700 dark:text-gray-200 mt-2 uppercase tracking-wide">
+                                                Stück
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <!-- Vorschaubild -->
-                                    <div class="w-16 h-16 flex-shrink-0">
+                                    <!-- Großes Vorschaubild -->
+                                    <div class="w-32 h-32 flex-shrink-0 bg-white dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 p-2">
                                         @if($item->cached_image_url)
                                             <img src="{{ $item->cached_image_url }}"
                                                  alt="{{ $item->item_name }}"
-                                                 onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center\'><i class=\'fa-solid fa-cube text-gray-400 text-2xl\'></i></div>';"
-                                                 class="w-full h-full object-contain rounded bg-white dark:bg-gray-700 p-1"
+                                                 onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center\'><i class=\'fa-solid fa-cube text-gray-400 text-4xl\'></i></div>';"
+                                                 class="w-full h-full object-contain"
                                                  loading="lazy">
                                         @else
                                             <div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
-                                                <i class="fa-solid fa-cube text-gray-400 text-2xl"></i>
+                                                <i class="fa-solid fa-cube text-gray-400 text-4xl"></i>
                                             </div>
                                         @endif
                                     </div>
 
-                                    <!-- Aufbewahrungsort Indicator -->
-                                    <div>
-                                        @if($item->remarks)
-                                            <span class="px-3 py-2 text-xs font-semibold rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-                                                  title="Aufbewahrungsort: {{ $item->remarks }}">
-                                                {{ $item->remarks }}
-                                            </span>
-                                        @endif
-                                    </div>
-
-
-                                    <!-- Item Info -->
+                                    <!-- Item Info mit prominentem Ablagefach -->
                                     <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <span class="px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                        <!-- Ablagefach - PROMINENT -->
+                                        @if($item->remarks)
+                                            <div class="mb-3">
+                                                <div class="inline-flex items-center gap-2 px-4 py-3 text-lg font-bold rounded-lg bg-yellow-100 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-200 border-2 border-yellow-400 dark:border-yellow-600">
+                                                    <i class="fa-solid fa-location-dot text-xl"></i>
+                                                    <span>{{ $item->remarks }}</span>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="mb-3">
+                                                <div class="inline-flex items-center gap-2 px-4 py-3 text-lg font-bold rounded-lg bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200 border-2 border-red-400 dark:border-red-600">
+                                                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                                                    <span>KEIN ABLAGEFACH</span>
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        <!-- Item Details -->
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <span class="px-3 py-1 text-sm font-semibold rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                                                 {{ $item->item_type }}
                                             </span>
-                                            <span class="text-sm font-mono text-gray-600 dark:text-gray-400">
+                                            <span class="text-lg font-mono font-bold text-gray-900 dark:text-white">
                                                 {{ $item->item_number }}
                                             </span>
                                             @if($item->color_name)
-                                                <span class="text-sm text-gray-500 dark:text-gray-400">
+                                                <span class="text-base text-gray-600 dark:text-gray-400">
                                                     • {{ $item->color_name }}
                                                 </span>
                                             @endif
+                                            <span class="px-2 py-1 text-xs font-medium rounded {{ $item->condition === 'N' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' }}">
+                                                {{ $item->condition === 'N' ? 'NEU' : 'GEBRAUCHT' }}
+                                            </span>
                                         </div>
-                                        <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                        <h3 class="text-base font-medium text-gray-900 dark:text-white mb-1">
                                             {{ $item->item_name }}
                                         </h3>
                                         @if($item->description)
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">
                                                 {{ $item->description }}
                                             </p>
                                         @endif
                                     </div>
 
-                                    <!-- Quantity -->
-                                    <div class="text-right">
-                                        <div class="text-2xl font-bold text-gray-900 dark:text-white">
-                                            {{ $item->quantity }}x
-                                        </div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $item->condition === 'N' ? 'Neu' : 'Gebraucht' }}
-                                        </div>
-                                    </div>
 
-                                    <!-- Status -->
-                                    <div class="flex-shrink-0">
+                                    <!-- Status mit größerem Icon -->
+                                    <div class="flex-shrink-0 pt-2">
                                         <div x-show="packed"
-                                             class="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                            <i class="fa-solid fa-check-circle text-xl"></i>
-                                            <span class="text-sm font-medium">Gepackt</span>
+                                             class="flex flex-col items-center gap-2 text-green-600 dark:text-green-400">
+                                            <i class="fa-solid fa-check-circle text-4xl"></i>
+                                            <span class="text-sm font-bold uppercase">Gepackt</span>
                                         </div>
                                         <div x-show="!packed"
-                                             class="flex items-center gap-2 text-gray-400 dark:text-gray-500">
-                                            <i class="fa-regular fa-circle text-xl"></i>
-                                            <span class="text-sm font-medium">Offen</span>
+                                             class="flex flex-col items-center gap-2 text-gray-400 dark:text-gray-500">
+                                            <i class="fa-regular fa-circle text-4xl"></i>
+                                            <span class="text-sm font-medium uppercase">Offen</span>
                                         </div>
                                     </div>
                                 </div>

@@ -115,7 +115,7 @@
                         <div class="flex justify-between pt-2 border-t">
                             <dt class="font-semibold text-gray-900 dark:text-white">Gesamtbetrag:</dt>
                             <dd class="font-bold text-lg text-gray-900 dark:text-white">
-                                {{ number_format($invoice->total, 2, ',', '.') }} {{ $invoice->currency }}
+                                {{ number_format($invoice->total, 3, ',', '.') }} {{ $invoice->currency }}
                             </dd>
                         </div>
                     </dl>

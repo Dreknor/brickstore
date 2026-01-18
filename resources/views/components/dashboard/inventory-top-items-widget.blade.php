@@ -55,32 +55,35 @@
                 @foreach($topItems as $item)
                     <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         <div class="flex items-center gap-3 flex-1 min-w-0">
-                            <div class="flex-shrink-0">
-                                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full {{
-                                    $item->item_type === 'PART' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' :
-                                    ($item->item_type === 'SET' ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' :
-                                    'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300')
-                                }}">
-                                    <i class="fa-solid {{
-                                        $item->item_type === 'PART' ? 'fa-cube' :
-                                        ($item->item_type === 'SET' ? 'fa-boxes-stacked' :
-                                        ($item->item_type === 'MINIFIG' ? 'fa-user' : 'fa-box'))
-                                    }}"></i>
-                                </span>
+                            <!-- Artikel-Bild -->
+                            <div class="w-12 h-12 flex-shrink-0">
+                                @if($item->cached_image_url)
+                                    <img src="{{ $item->cached_image_url }}"
+                                         alt="{{ $item->item_no }}"
+                                         onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center\'><i class=\'fa-solid fa-cube text-gray-400 text-lg\'></i></div>';"
+                                         class="w-full h-full object-contain rounded bg-white dark:bg-gray-700 p-1"
+                                         loading="lazy">
+                                @else
+                                    <div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
+                                        <i class="fa-solid {{ $item->item_type === 'PART' ? 'fa-cube' : ($item->item_type === 'SET' ? 'fa-boxes-stacked' : ($item->item_type === 'MINIFIG' ? 'fa-user' : 'fa-box')) }} text-gray-400 text-lg"></i>
+                                    </div>
+                                @endif
                             </div>
+
+                            <!-- Artikel-Info -->
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
                                     {{ $item->item_no }}
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
                                     {{ $item->color_name ?? 'Keine Farbe' }} •
-                                    {{ $item->quantity }} Stk. × {{ number_format($item->unit_price, 2) }}€
+                                    {{ $item->quantity }} Stk. × {{ number_format($item->unit_price, 3) }}€
                                 </p>
                             </div>
                         </div>
                         <div class="text-right flex-shrink-0 ml-4">
                             <p class="text-sm font-bold text-gray-900 dark:text-white">
-                                {{ number_format($item->quantity * $item->unit_price, 2) }}€
+                                {{ number_format($item->quantity * $item->unit_price, 3) }}€
                             </p>
                             <a href="{{ route('inventory.show', $item) }}"
                                class="text-xs text-blue-600 dark:text-blue-400 hover:underline">

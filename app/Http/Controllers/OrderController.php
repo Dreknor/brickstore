@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Services\ActivityLogger;
 use App\Services\BrickLink\BrickLinkService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -163,11 +164,13 @@ class OrderController extends Controller
         $store = auth()->user()->store;
 
         if (! $store) {
+            Log::debug('No store configured for user', ['userId' => auth()->id()]);
             return redirect()->back()->with('error', 'No store configured');
         }
 
         // Check if store has BrickLink credentials
         if (! $store->hasBrickLinkCredentials()) {
+            Log::debug('Store missing BrickLink API credentials', ['storeId' => $store->id]);
             return redirect()->back()->with('error', 'BrickLink API credentials are not configured. Please update your store settings.');
         }
 
@@ -307,6 +310,40 @@ class OrderController extends Controller
             ]);
 
             return redirect()->back()->with('error', 'Fehler beim Markieren der Bestellung als versendet: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Generate and download shipping label PDF for an order.
+     */
+    public function shippingLabel(Order $order)
+    {
+        Gate::authorize('view', $order);
+
+        // Check if order is already shipped
+        if ($order->status === 'Shipped' || $order->shipped_date) {
+            return redirect()->back()->with('error', 'Versandetikett kann nicht für bereits versendete Bestellungen erstellt werden.');
+        }
+
+        try {
+            $data = [
+                'order' => $order,
+                'store' => $order->store,
+            ];
+
+            // Generate PDF with 15x10 cm dimensions in landscape (150mm x 100mm)
+            // Width: 15cm = 425.197 points, Height: 10cm = 283.465 points
+            $pdf = Pdf::loadView('orders.shipping-label', $data);
+            $pdf->setPaper([0, 0, 425.197, 283.465]); // [x, y, width, height] in points
+
+            return $pdf->download('Versandetikett-'.$order->bricklink_order_id.'.pdf');
+        } catch (\Exception $e) {
+            Log::error('Failed to generate shipping label', [
+                'orderId' => $order->bricklink_order_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Fehler beim Erstellen des Versandetiketts: '.$e->getMessage());
         }
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\BrickLink\ImageCacheService;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +19,7 @@ class Inventory extends Model
         'item_type',
         'color_id',
         'color_name',
+        'image_url',
         'quantity',
         'new_or_used',
         'completeness',
@@ -40,27 +43,47 @@ class Inventory extends Model
         'tier_quantity3',
         'tier_price3',
         'my_weight',
+        'avg_price',
+        'min_price',
+        'max_price',
+        'qty_sold',
+        'price_guide_data',
+        'price_guide_fetched_at',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
-        'unit_price' => 'decimal:2',
+        'unit_price' => 'decimal:3',
         'is_retain' => 'boolean',
         'is_stock_room' => 'boolean',
         'date_created' => 'datetime',
         'date_updated' => 'datetime',
         'tier_prices' => 'array',
         'sale_rate' => 'decimal:2',
-        'my_cost' => 'decimal:2',
-        'tier_price1' => 'decimal:2',
-        'tier_price2' => 'decimal:2',
-        'tier_price3' => 'decimal:2',
+        'my_cost' => 'decimal:3',
+        'tier_price1' => 'decimal:3',
+        'tier_price2' => 'decimal:3',
+        'tier_price3' => 'decimal:3',
         'my_weight' => 'decimal:2',
+        'avg_price' => 'decimal:3',
+        'min_price' => 'decimal:3',
+        'max_price' => 'decimal:3',
+        'qty_sold' => 'integer',
+        'price_guide_data' => 'array',
+        'price_guide_fetched_at' => 'datetime',
     ];
 
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * Get the color associated with this inventory item
+     */
+    public function color(): BelongsTo
+    {
+        return $this->belongsTo(Color::class, 'color_id', 'color_id');
     }
 
     public function getConditionAttribute(): string
@@ -138,5 +161,47 @@ class Inventory extends Model
     public function scopeAvailable($query)
     {
         return $query->where('is_stock_room', false);
+    }
+
+    /**
+     * Get the cached image URL or cache it if not already cached.
+     */
+    protected function cachedImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (empty($this->image_url)) {
+                    return null;
+                }
+
+                $cacheService = app(ImageCacheService::class);
+
+                return $cacheService->cacheImage(
+                    $this->image_url,
+                    $this->item_type,
+                    $this->item_no,
+                    $this->color_id
+                );
+            }
+        );
+    }
+
+    /**
+     * Cache the image for this item.
+     */
+    public function cacheImage(): ?string
+    {
+        if (empty($this->image_url)) {
+            return null;
+        }
+
+        $cacheService = app(ImageCacheService::class);
+
+        return $cacheService->cacheImage(
+            $this->image_url,
+            $this->item_type,
+            $this->item_no,
+            $this->color_id
+        );
     }
 }

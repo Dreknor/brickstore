@@ -26,7 +26,7 @@ return new class extends Migration
 
             // Quantity & pricing
             $table->integer('quantity')->default(0);
-            $table->decimal('new_or_used', 1, 0); // N=New, U=Used
+            $table->char('new_or_used', 1)->default('N'); // N=New, U=Used
             $table->string('completeness')->nullable(); // C=Complete, B=Incomplete, S=Sealed
             $table->decimal('unit_price', 10, 2);
             $table->integer('bind_id')->nullable(); // If this item is bound to other items

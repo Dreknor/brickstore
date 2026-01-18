@@ -3,35 +3,10 @@
 
 Sehr geehrte(r) {{ $invoice->customer_name }},
 
-anbei erhalten Sie Ihre Rechnung @if($invoice->service_date) für Ihre Bestellung vom {{ $invoice->service_date->format('d.m.Y') }} @endif.
+Vielen Dank für @if($invoice->service_date) für Ihre Bestellung vom {{ $invoice->service_date->format('d.m.Y') }} @endif bei {{ $store->company_name }}.<br>
+Anbei erhalten Sie Ihre Rechnung. Die Artikel Ihrer Bestellung sind in der Rechnung aufgeführt.
 
-## Rechnungsdetails
-
-- **Rechnungsnummer:** {{ $invoice->invoice_number }}
-@if($invoice->invoice_date)
-- **Rechnungsdatum:** {{ $invoice->invoice_date->format('d.m.Y') }}
-@endif
-- **Gesamtbetrag:** {{ number_format($invoice->total, 2, ',', '.') }} {{ $invoice->currency }}
-@if($invoice->due_date)
-- **Zahlungsziel:** {{ $invoice->due_date->format('d.m.Y') }}
-@endif
-
-@if(!$invoice->is_paid)
-## Zahlungsinformationen
-
-Bitte überweisen Sie den Betrag auf folgendes Konto:
-
-@if($store->bank_account_holder && $store->iban)
-- **Kontoinhaber:** {{ $store->bank_account_holder }}
-- **IBAN:** {{ $store->iban }}
-@if($store->bic)
-- **BIC:** {{ $store->bic }}
-@endif
-- **Verwendungszweck:** {{ $invoice->invoice_number }}
-@endif
-@endif
-
-Vielen Dank für Ihre Bestellung!
+Die Bestellung befindet sich bereits auf dem Weg zu Ihnen und sollte in Kürze eintreffen. Viel Freude mit Ihren neuen Artikeln!
 
 Mit freundlichen Grüßen,<br>
 {{ $store->company_name }}<br>

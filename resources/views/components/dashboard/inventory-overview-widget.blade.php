@@ -3,14 +3,10 @@
 
     $totalItems = 0;
     $totalValue = 0;
-    $stockroomItems = 0;
-    $lowStockItems = 0;
 
     if ($store) {
         $totalItems = $store->inventories()->sum('quantity');
         $totalValue = $store->inventories()->sum(\DB::raw('quantity * unit_price'));
-        $stockroomItems = $store->inventories()->where('is_stock_room', true)->count();
-        $lowStockItems = $store->inventories()->where('quantity', '<', 10)->count();
     }
 @endphp
 
@@ -64,42 +60,13 @@
                                 Gesamtwert
                             </p>
                             <p class="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">
-                                {{ number_format($totalValue, 2) }} €
+                                {{ number_format($totalValue, 3) }} €
                             </p>
                         </div>
                         <i class="fa-solid fa-euro-sign text-3xl text-green-500/30"></i>
                     </div>
                 </div>
 
-                <!-- Stockroom Items -->
-                <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase">
-                                Im Lager
-                            </p>
-                            <p class="text-2xl font-bold text-purple-900 dark:text-purple-300 mt-1">
-                                {{ number_format($stockroomItems) }}
-                            </p>
-                        </div>
-                        <i class="fa-solid fa-warehouse text-3xl text-purple-500/30"></i>
-                    </div>
-                </div>
-
-                <!-- Low Stock -->
-                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase">
-                                Niedriger Bestand
-                            </p>
-                            <p class="text-2xl font-bold text-orange-900 dark:text-orange-300 mt-1">
-                                {{ number_format($lowStockItems) }}
-                            </p>
-                        </div>
-                        <i class="fa-solid fa-triangle-exclamation text-3xl text-orange-500/30"></i>
-                    </div>
-                </div>
             </div>
 
             <!-- Quick Actions -->

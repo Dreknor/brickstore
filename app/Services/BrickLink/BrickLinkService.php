@@ -548,6 +548,61 @@ class BrickLinkService
     }
 
     /**
+     * Fetch price guide for a catalog item
+     * API: GET /items/{type}/{no}/price_guide
+     *
+     * @param string $type Item type (PART, SET, MINIFIG, etc.)
+     * @param string $no Item number
+     * @param string $condition Item condition (N for new, U for used)
+     * @return array Price guide data (avg_price, min_price, max_price, qty_sold)
+     * @throws \Exception
+     */
+    public function fetchPriceGuide(Store $store, string $type, string $no, string $condition = 'N'): array
+    {
+        $url = self::API_BASE_URL . '/items/' . urlencode(strtoupper($type)) . '/' . urlencode($no) . '/price';
+
+        // Add condition parameter
+        $params = [
+            'condition' => strtoupper($condition) === 'NEW' ? 'N' : 'U',
+            'guide_type' => 'sold' // Use sold prices, not asking prices
+        ];
+
+        $url .= '?' . http_build_query($params);
+
+        Log::info('Fetching BrickLink price guide', [
+            'type' => $type,
+            'no' => $no,
+            'condition' => $condition,
+            'url' => $url,
+        ]);
+
+        try {
+            $response = $this->makeRequest('GET', $url, $store);
+
+            $data = $response['data'] ?? [];
+
+            Log::debug('Fetched price guide data', [
+                'type' => $type,
+                'no' => $no,
+                'hasAvgPrice' => isset($data['avg_price']),
+                'priceData' => $data,
+            ]);
+
+            return $data;
+        } catch (\Exception $e) {
+            Log::warning('Failed to fetch price guide from BrickLink', [
+                'type' => $type,
+                'no' => $no,
+                'condition' => $condition,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Return empty array instead of throwing, as price guide is optional
+            return [];
+        }
+    }
+
+    /**
      * Parse remarks field into message entries
      * Looks for timestamp separators (--- YYYY-MM-DD HH:MM:SS ---) to split messages
      *

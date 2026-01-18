@@ -22,6 +22,11 @@ class ImageCacheService
             return null;
         }
 
+        // Ensure cache directory exists
+        if (!Storage::disk('public')->exists($this->cacheDirectory)) {
+            Storage::disk('public')->makeDirectory($this->cacheDirectory);
+        }
+
         // Generate filename based on item details
         $filename = $this->generateFilename($itemType, $itemNumber, $colorId, $imageUrl);
         $path = "{$this->cacheDirectory}/{$filename}";

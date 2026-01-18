@@ -65,10 +65,11 @@ test('sync job does not retry on authentication errors', function () {
 
     $job = new SyncBrickLinkOrdersJob($this->store);
 
-    // The job should catch the exception and call fail()
+    // The job should catch the exception and call fail() without throwing
+    // If this doesn't throw an exception, the test passes
     $job->handle(new BrickLinkService);
 
-    // Check that the job was marked as failed (this is implicit in the fail() method)
+    // If we reach here, the job handled the authentication error correctly
     expect(true)->toBeTrue();
 });
 
@@ -83,13 +84,11 @@ test('order sync requires valid credentials', function () {
         'bl_token_secret' => null,
     ]);
 
-    // Refresh the store instance
-    $this->store = $this->store->fresh();
+    $response = $this->from(route('orders.index'))
+        ->post(route('orders.sync-all'));
 
-    $response = $this->post(route('orders.sync-all'));
-
-    $response->assertRedirect();
-    $response->assertSessionHas('error');
+    $response->assertRedirect(route('orders.index'));
+    $response->assertSessionHas('error', 'BrickLink API credentials are not configured. Please update your store settings.');
 });
 
 test('order sync starts with valid credentials', function () {
@@ -98,10 +97,11 @@ test('order sync starts with valid credentials', function () {
     // Queue should be faked to prevent actual job execution
     Queue::fake();
 
-    $response = $this->post(route('orders.sync-all'));
+    $response = $this->from(route('orders.index'))
+        ->post(route('orders.sync-all'));
 
-    $response->assertRedirect();
-    $response->assertSessionHas('success');
+    $response->assertRedirect(route('orders.index'));
+    $response->assertSessionHas('success', 'Order synchronization started in background');
 
     // Verify the job was dispatched
     Queue::assertPushed(SyncBrickLinkOrdersJob::class);

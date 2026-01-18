@@ -160,7 +160,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-sm font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
-                                        {{ number_format($order->grand_total, 2, ',', '.') }} {{ $order->currency_code }}
+                                        {{ number_format($order->grand_total, 3, ',', '.') }} {{ $order->currency_code }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -209,6 +209,15 @@
                                             <i class="fa-solid fa-box text-sm"></i>
                                             <span class="text-xs font-medium">Packen</span>
                                         </a>
+                                        @if($order->status !== 'Shipped' && !$order->shipped_date)
+                                            <a href="{{ route('orders.shipping-label', $order) }}"
+                                               class="inline-flex items-center gap-2 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all hover:shadow-lg transform hover:scale-105"
+                                               title="Versandetikett drucken"
+                                               target="_blank">
+                                                <i class="fa-solid fa-file-pdf text-sm"></i>
+                                                <span class="text-xs font-medium">Etikett</span>
+                                            </a>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

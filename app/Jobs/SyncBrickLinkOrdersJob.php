@@ -47,6 +47,8 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
             $orders = $service->fetchOrders($this->store, $this->status ?? '');
             $synced = 0;
 
+            Log::debug($orders);
+
             foreach ($orders as $orderData) {
                 // Skip orders older than X days
                 $orderDate = \Carbon\Carbon::parse($orderData['date_ordered']);
@@ -73,9 +75,14 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
 
             Log::info("Synced {$synced} orders for store: {$this->store->name}");
         } catch (\Exception $e) {
+
+            Log::debug($e->getMessage());
+
             // Check if it's an authentication error
             if (str_contains($e->getMessage(), 'CONSUMER_KEY_UNKNOWN') ||
                 str_contains($e->getMessage(), 'TOKEN_VALUE_UNKNOWN') ||
+                str_contains($e->getMessage(), 'Consumer Key ist bei BrickLink unbekannt') ||
+                str_contains($e->getMessage(), 'Token ist bei BrickLink unbekannt') ||
                 str_contains($e->getMessage(), 'authentication failed')) {
 
                 Log::error("BrickLink API Authentifizierungsfehler für Store {$this->store->name}", [

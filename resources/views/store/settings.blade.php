@@ -34,6 +34,10 @@
                             class="py-4 px-1 border-b-2 font-medium text-sm">
                         <i class="fa-solid fa-cloud mr-2"></i> Nextcloud
                     </button>
+                    <button @click="tab = 'colors'" :class="tab === 'colors' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'"
+                            class="py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fa-solid fa-palette mr-2"></i> Farben
+                    </button>
                 </nav>
             </div>
 
@@ -100,24 +104,6 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rechnungsnummern-Format</label>
-                            <input type="text" name="invoice_number_format" value="{{ $store->invoice_number_format }}"
-                                   class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono"
-                                   placeholder="RE-{year}-{number}">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Verfügbare Platzhalter: {year}, {month}, {number}
-                            </p>
-                        </div>
-
-                        <div class="flex items-center">
-                            <input type="checkbox" name="is_small_business" value="1" {{ $store->is_small_business ? 'checked' : '' }}
-                                   class="w-4 h-4 text-blue-600 rounded">
-                            <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                                Kleinunternehmer gemäß § 19 UStG (keine MwSt.)
-                            </label>
-                        </div>
-
                         <div class="flex justify-end pt-4">
                             <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                 Speichern
@@ -136,27 +122,28 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bank</label>
-                                <input type="text" name="bank_name" value="{{ $store->bank_name }}" required
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bank Name</label>
+                                <input type="text" name="bank_name" value="{{ $store->bank_name }}"
                                        class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kontoinhaber</label>
-                                <input type="text" name="bank_account_holder" value="{{ $store->bank_account_holder }}" required
+                                <input type="text" name="bank_account_holder" value="{{ $store->bank_account_holder }}"
                                        class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">IBAN</label>
-                            <input type="text" name="iban" value="{{ $store->iban }}" required maxlength="34"
-                                   class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">BIC</label>
-                            <input type="text" name="bic" value="{{ $store->bic }}" required maxlength="11"
-                                   class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">IBAN</label>
+                                <input type="text" name="iban" value="{{ $store->iban }}"
+                                       class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">BIC</label>
+                                <input type="text" name="bic" value="{{ $store->bic }}"
+                                       class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                            </div>
                         </div>
 
                         <div class="flex justify-end pt-4">
@@ -175,41 +162,29 @@
                         @csrf
                         @method('PUT')
 
-                        <div class="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg mb-4">
-                            <p class="text-sm text-yellow-800 dark:text-yellow-200">
-                                <i class="fa-solid fa-info-circle mr-2"></i>
-                                Ihre API-Credentials werden verschlüsselt gespeichert.
-                            </p>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Consumer Key</label>
+                            <input type="text" name="bl_consumer_key" value="{{ $store->bl_consumer_key ? '••••••••' : '' }}"
+                                   placeholder="{{ $store->bl_consumer_key ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Consumer Key eingeben' }}"
+                                   class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Consumer Key</label>
-                                <input type="text" name="bl_consumer_key" value="{{ $store->bl_consumer_key ? '••••••••' : '' }}"
-                                       placeholder="{{ $store->bl_consumer_key ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Consumer Key eingeben' }}"
-                                       class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Consumer Secret</label>
-                                <input type="password" name="bl_consumer_secret"
-                                       placeholder="{{ $store->bl_consumer_secret ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Consumer Secret eingeben' }}"
-                                       class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Consumer Secret</label>
+                            <input type="password" name="bl_consumer_secret"
+                                   placeholder="{{ $store->bl_consumer_secret ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Consumer Secret eingeben' }}"
+                                   class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Token</label>
-                                <input type="text" name="bl_token" value="{{ $store->bl_token ? '••••••••' : '' }}"
-                                       placeholder="{{ $store->bl_token ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Token eingeben' }}"
-                                       class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Token Secret</label>
-                                <input type="password" name="bl_token_secret"
-                                       placeholder="{{ $store->bl_token_secret ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Token Secret eingeben' }}"
-                                       class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Token</label>
+                            <input type="text" name="bl_token" value="{{ $store->bl_token ? '••••••••' : '' }}"
+                                   placeholder="{{ $store->bl_token ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Token eingeben' }}"
+                                   class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Token Secret</label>
+                            <input type="password" name="bl_token_secret"
+                                   placeholder="{{ $store->bl_token_secret ? 'Aktualisieren (leer lassen für keine Änderung)' : 'Token Secret eingeben' }}"
+                                   class="w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
                         </div>
 
                         <div class="flex justify-end pt-4">
@@ -341,13 +316,103 @@
                 </div>
             </div>
 
-            <!-- Weitere Tabs folgen analog... -->
+            <!-- Tab: Farben -->
+            <div x-show="tab === 'colors'" class="mt-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                            <i class="fa-solid fa-palette mr-2 text-purple-600"></i>
+                            Farb-Synchronisation
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Synchronisieren Sie alle verfügbaren Farben von BrickLink. Dies ist notwendig, um Artikel mit korrekten Farben zu erstellen und anzuzeigen.
+                        </p>
+                    </div>
+
+                    @php
+                        $totalColors = \App\Models\Color::count();
+                        $lastSync = \App\Models\Color::max('updated_at');
+                    @endphp
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/30 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+                                        Gespeicherte Farben
+                                    </p>
+                                    <p class="text-2xl font-bold text-purple-900 dark:text-purple-300 mt-1">
+                                        {{ number_format($totalColors) }}
+                                    </p>
+                                </div>
+                                <i class="fa-solid fa-swatchbook text-3xl text-purple-500/30"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                        Letzte Synchronisation
+                                    </p>
+                                    <p class="text-lg font-semibold text-blue-900 dark:text-blue-300 mt-1">
+                                        @if($lastSync)
+                                            {{ \Carbon\Carbon::parse($lastSync)->diffForHumans() }}
+                                        @else
+                                            Noch nie
+                                        @endif
+                                    </p>
+                                </div>
+                                <i class="fa-solid fa-clock text-3xl text-blue-500/30"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-info-circle text-blue-600 dark:text-blue-400 mt-1"></i>
+                            <div class="text-sm text-blue-800 dark:text-blue-300">
+                                <p class="font-semibold mb-1">Was wird synchronisiert?</p>
+                                <ul class="list-disc list-inside space-y-1 ml-2">
+                                    <li>Farb-ID und Name</li>
+                                    <li>RGB-Werte für die Anzeige</li>
+                                    <li>Farbtyp (Solid, Transparent, etc.)</li>
+                                </ul>
+                                <p class="mt-2 text-xs">
+                                    Die Synchronisation dauert je nach Anzahl der Farben ca. 10-30 Sekunden.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4">
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            <i class="fa-solid fa-database mr-1"></i>
+                            Alle vorhandenen Farben werden aktualisiert, neue hinzugefügt.
+                        </div>
+                        <button type="button" id="colors-sync-btn" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-md hover:shadow-lg">
+                            <i class="fa-solid fa-sync mr-2"></i> Farben jetzt synchronisieren
+                        </button>
+                    </div>
+
+                    <!-- Status Message Container -->
+                    <div id="colors-sync-status" class="mt-4 hidden"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Handle test buttons with AJAX
         document.addEventListener('DOMContentLoaded', function() {
+            // Colors Sync Button
+            const colorsSyncBtn = document.getElementById('colors-sync-btn');
+            if (colorsSyncBtn) {
+                colorsSyncBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    syncColors(this);
+                });
+            }
+
             // SMTP Test Button
             const smtpTestBtn = document.getElementById('smtp-test-btn');
             if (smtpTestBtn) {
@@ -367,14 +432,59 @@
             }
         });
 
+        function syncColors(btn) {
+            const originalText = btn.innerHTML;
+            const statusDiv = document.getElementById('colors-sync-status');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Wird synchronisiert...';
+
+            statusDiv.className = 'mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg';
+            statusDiv.innerHTML = '<div class="flex items-center gap-3"><i class="fa-solid fa-spinner fa-spin text-blue-600 dark:text-blue-400 text-xl"></i><div class="text-sm text-blue-800 dark:text-blue-300"><p class="font-semibold">Synchronisation läuft...</p><p>Bitte warten Sie, während die Farben von BrickLink abgerufen werden.</p></div></div>';
+            statusDiv.classList.remove('hidden');
+
+            const csrfToken = document.querySelector('input[name="_token"]');
+            const token = csrfToken ? csrfToken.value : '';
+
+            fetch('{{ route("store.settings.colors.sync") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.className = 'mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg';
+                    statusDiv.innerHTML = '<div class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-600 dark:text-green-400 text-xl mt-1"></i><div class="text-sm text-green-800 dark:text-green-300 flex-1"><p class="font-semibold mb-2">' + data.message + '</p>' + (data.data ? '<div class="grid grid-cols-3 gap-2 mt-3"><div class="bg-white dark:bg-gray-800 rounded p-2 text-center"><p class="text-xs text-gray-600 dark:text-gray-400">Gesamt</p><p class="text-lg font-bold text-green-600">' + data.data.total + '</p></div><div class="bg-white dark:bg-gray-800 rounded p-2 text-center"><p class="text-xs text-gray-600 dark:text-gray-400">Neu</p><p class="text-lg font-bold text-blue-600">' + data.data.created + '</p></div><div class="bg-white dark:bg-gray-800 rounded p-2 text-center"><p class="text-xs text-gray-600 dark:text-gray-400">Aktualisiert</p><p class="text-lg font-bold text-purple-600">' + data.data.updated + '</p></div></div>' : '') + '</div></div>';
+                    setTimeout(() => {
+                        location.reload();
+                    }, 3000);
+                } else {
+                    statusDiv.className = 'mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg';
+                    statusDiv.innerHTML = '<div class="flex items-start gap-3"><i class="fa-solid fa-exclamation-circle text-red-600 dark:text-red-400 text-xl mt-1"></i><div class="text-sm text-red-800 dark:text-red-300"><p class="font-semibold">Synchronisation fehlgeschlagen</p><p>' + data.message + '</p></div></div>';
+                }
+            })
+            .catch(error => {
+                console.error('Sync error:', error);
+                statusDiv.className = 'mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg';
+                statusDiv.innerHTML = '<div class="flex items-start gap-3"><i class="fa-solid fa-exclamation-circle text-red-600 dark:text-red-400 text-xl mt-1"></i><div class="text-sm text-red-800 dark:text-red-300"><p class="font-semibold">Fehler bei der Synchronisation</p><p>Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.</p></div></div>';
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        }
+
         function testConnection(url, btn) {
             const originalText = btn.innerHTML;
 
-            // Show loading state
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Wird getestet...';
 
-            // Get CSRF token
             const csrfToken = document.querySelector('input[name="_token"]');
             const token = csrfToken ? csrfToken.value : '';
 
@@ -389,22 +499,11 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Create notification
                 const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 transition-all duration-300 shadow-lg ${
-                    data.success
-                        ? 'bg-green-500 dark:bg-green-600'
-                        : 'bg-red-500 dark:bg-red-600'
-                }`;
-                notification.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid ${data.success ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                        <span>${data.message}</span>
-                    </div>
-                `;
+                notification.className = 'fixed top-4 right-4 p-4 rounded-lg text-white z-50 transition-all duration-300 shadow-lg ' + (data.success ? 'bg-green-500 dark:bg-green-600' : 'bg-red-500 dark:bg-red-600');
+                notification.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid ' + (data.success ? 'fa-check-circle' : 'fa-exclamation-circle') + '"></i><span>' + data.message + '</span></div>';
                 document.body.appendChild(notification);
 
-                // Auto-remove notification after 5 seconds
                 setTimeout(() => {
                     notification.style.opacity = '0';
                     setTimeout(() => notification.remove(), 300);
@@ -414,12 +513,7 @@
                 console.error('Test error:', error);
                 const notification = document.createElement('div');
                 notification.className = 'fixed top-4 right-4 p-4 rounded-lg text-white bg-red-500 dark:bg-red-600 z-50 transition-all duration-300 shadow-lg';
-                notification.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-exclamation-circle"></i>
-                        <span>Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.</span>
-                    </div>
-                `;
+                notification.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-exclamation-circle"></i><span>Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.</span></div>';
                 document.body.appendChild(notification);
 
                 setTimeout(() => {
@@ -428,7 +522,6 @@
                 }, 5000);
             })
             .finally(() => {
-                // Restore button state
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             });

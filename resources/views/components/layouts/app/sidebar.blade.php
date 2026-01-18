@@ -13,6 +13,10 @@
                             <x-layouts.sidebar-link href="{{ route('orders.index') }}" icon='fas-cart-shopping'
                                 :active="request()->routeIs('orders.*')">Bestellungen</x-layouts.sidebar-link>
 
+                            <!-- Inventory -->
+                            <x-layouts.sidebar-link href="{{ route('inventory.index') }}" icon='fas-boxes-stacked'
+                                :active="request()->routeIs('inventory.*')">Inventar</x-layouts.sidebar-link>
+
                             <!-- Invoices -->
                             <x-layouts.sidebar-link href="{{ route('invoices.index') }}" icon='fas-file-invoice'
                                 :active="request()->routeIs('invoices.*')">Rechnungen</x-layouts.sidebar-link>

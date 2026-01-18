@@ -5,6 +5,10 @@
         <p class="text-gray-600 dark:text-gray-400 mt-1">{{ __('Welcome to the dashboard') }}</p>
     </div>
 
+    <!-- Brickognize Scanner Widget (Top Priority) -->
+    <div class="mb-6">
+        <x-brickognize-scanner />
+    </div>
 
     <!-- Inventory & Nextcloud Widgets Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -23,5 +27,8 @@
         <!-- Activity Log -->
         <x-dashboard.inventory-activity-widget />
     </div>
+
+    <!-- Identification Result Modal (Global) -->
+    <x-identification-result-modal />
 
 </x-layouts.app>

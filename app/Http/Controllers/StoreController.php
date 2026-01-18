@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Store;
 use App\Services\ActivityLogger;
+use App\Services\BrickLink\ColorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -362,6 +363,43 @@ class StoreController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'SMTP-Test fehlgeschlagen: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Sync colors from BrickLink
+     */
+    public function syncColors(ColorService $colorService)
+    {
+        $store = auth()->user()->store;
+        Gate::authorize('update', $store);
+
+        try {
+            $result = $colorService->syncColorsFromBrickLink($store);
+
+            ActivityLogger::info('store.colors.synced', 'Colors synced from BrickLink', $store, [
+                'total' => $result['total'],
+                'created' => $result['created'],
+                'updated' => $result['updated'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => sprintf(
+                    '✅ Farb-Synchronisation erfolgreich! %d Farben synchronisiert (%d neu, %d aktualisiert)',
+                    $result['total'],
+                    $result['created'],
+                    $result['updated']
+                ),
+                'data' => $result,
+            ]);
+        } catch (\Exception $e) {
+            ActivityLogger::error('store.colors.sync_failed', 'Color sync failed: '.$e->getMessage(), $store);
+
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Farb-Synchronisation fehlgeschlagen: '.$e->getMessage(),
             ], 500);
         }
     }

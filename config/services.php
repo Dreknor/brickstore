@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'brickognize' => [
+        'api_url' => env('BRICKOGNIZE_API_URL', 'https://api.brickognize.com'),
+        'timeout' => env('BRICKOGNIZE_TIMEOUT', 30), // Bildanalyse kann länger dauern
+    ],
+
 ];

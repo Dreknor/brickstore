@@ -23,6 +23,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('store/settings/nextcloud', [App\Http\Controllers\StoreController::class, 'updateNextcloud'])->name('store.settings.nextcloud');
     Route::post('store/settings/smtp/test', [App\Http\Controllers\StoreController::class, 'testSmtp'])->name('store.settings.smtp.test');
     Route::post('store/settings/nextcloud/test', [App\Http\Controllers\StoreController::class, 'testNextcloud'])->name('store.settings.nextcloud.test');
+    Route::post('store/settings/colors/sync', [App\Http\Controllers\StoreController::class, 'syncColors'])->name('store.settings.colors.sync');
 
     // Settings
     Route::get('settings/profile', [Settings\ProfileController::class, 'edit'])->name('settings.profile.edit');
@@ -44,10 +45,18 @@ Route::middleware(['auth', 'store.setup'])->group(function () {
     Route::post('orders/{order}/status', [App\Http\Controllers\OrderController::class, 'updateStatus'])->name('orders.update-status');
     Route::post('orders/{order}/shipping', [App\Http\Controllers\OrderController::class, 'updateShipping'])->name('orders.update-shipping');
     Route::post('orders/{order}/ship', [App\Http\Controllers\OrderController::class, 'ship'])->name('orders.ship');
+    Route::get('orders/{order}/shipping-label', [App\Http\Controllers\OrderController::class, 'shippingLabel'])->name('orders.shipping-label');
 
     // Inventory
     Route::resource('inventory', App\Http\Controllers\InventoryController::class);
     Route::post('inventory/sync', [App\Http\Controllers\InventoryController::class, 'sync'])->name('inventory.sync');
+    Route::post('inventory/cache-images', [App\Http\Controllers\InventoryController::class, 'cacheImages'])->name('inventory.cache-images');
+    Route::post('inventory/{inventory}/refresh-price-guide', [App\Http\Controllers\InventoryController::class, 'refreshPriceGuide'])->name('inventory.refresh-price-guide');
+    Route::get('api/inventory/load-item', [App\Http\Controllers\InventoryItemLoaderController::class, 'loadItem'])->name('inventory.load-item');
+
+    // BrickLink API - Item Info & Price Guide für Auto-Complete
+    Route::get('api/bricklink/item-info', [App\Http\Controllers\BrickLinkApiController::class, 'getItemInfo'])->name('api.bricklink.item-info');
+    Route::get('api/bricklink/price-guide', [App\Http\Controllers\BrickLinkApiController::class, 'getPriceGuide'])->name('api.bricklink.price-guide');
 
     // Feedback
     Route::post('orders/{order}/feedback/sync', [App\Http\Controllers\FeedbackController::class, 'sync'])->name('orders.feedback.sync');
@@ -62,6 +71,15 @@ Route::middleware(['auth', 'store.setup'])->group(function () {
     Route::post('invoices/{invoice}/mark-paid', [App\Http\Controllers\InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
     Route::put('invoices/{invoice}', [App\Http\Controllers\InvoiceController::class, 'update'])->name('invoices.update');
     Route::post('invoices/{invoice}/reupload-nextcloud', [App\Http\Controllers\InvoiceController::class, 'reuploadToNextcloud'])->name('invoices.reupload-nextcloud');
+
+    // Brickognize - LEGO Teil-Identifikation
+    Route::prefix('brickognize')->name('brickognize.')->group(function () {
+        Route::post('/identify', [App\Http\Controllers\BrickognizeController::class, 'identify'])->name('identify');
+        Route::post('/search-inventory', [App\Http\Controllers\BrickognizeController::class, 'searchInventory'])->name('search-inventory');
+        Route::post('/quick-add', [App\Http\Controllers\BrickognizeController::class, 'quickAdd'])->name('quick-add');
+        Route::post('/create-item', [App\Http\Controllers\BrickognizeController::class, 'createFromIdentification'])->name('create-item');
+        Route::get('/history', [App\Http\Controllers\BrickognizeController::class, 'history'])->name('history');
+    });
 });
 
 // Admin Routes

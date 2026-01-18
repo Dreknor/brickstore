@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\CacheInventoryImagesJob;
 use App\Models\Inventory;
 use App\Models\Store;
 use App\Services\BrickLink\BrickLinkService;
@@ -11,7 +12,8 @@ use Illuminate\Support\Facades\Log;
 class InventoryService
 {
     public function __construct(
-        protected BrickLinkService $brickLinkService
+        protected BrickLinkService $brickLinkService,
+        protected \App\Services\BrickLink\CatalogItemService $catalogItemService
     ) {}
 
     /**
@@ -69,7 +71,12 @@ class InventoryService
                         \App\Services\ActivityLogger::debug(
                             'inventory.item.synced.updated',
                             "Inventory item updated: {$inventory->item_no}",
-                            $inventory
+                            $inventory,
+                            [
+                                'item_no' => $inventory->item_no,
+                                'item_type' => $inventory->item_type,
+                                'quantity' => $inventory->quantity,
+                            ]
                         );
                     }
                 } catch (\Exception $e) {
@@ -94,6 +101,13 @@ class InventoryService
                 'updated' => $updated,
                 'errors' => count($errors),
             ]);
+
+            // Dispatch job to cache images in the background
+            if ($synced > 0) {
+                CacheInventoryImagesJob::dispatch($store->id)
+                    ->onQueue('default')
+                    ->delay(now()->addSeconds(5)); // Delay to avoid overloading
+            }
 
             // Log completion
             \App\Services\ActivityLogger::info(
@@ -144,6 +158,43 @@ class InventoryService
         $data = $this->mapBrickLinkToInventory($blItem);
         $data['store_id'] = $store->id;
 
+        // Check if item already exists
+        $existingItem = Inventory::where('store_id', $store->id)
+            ->where('inventory_id', $blItem['inventory_id'])
+            ->first();
+
+        // WICHTIG: Bewahre lokale Bilder wenn vorhanden
+        // Die BrickLink-API gibt bei fetchInventories() keine image_url zurück,
+        // daher würden lokale Bilder sonst mit NULL überschrieben werden
+        if ($existingItem && !empty($existingItem->image_url)) {
+            // Wenn lokales Bild existiert und neue Daten leer sind: Bewahre lokales Bild
+            if (empty($data['image_url'])) {
+                $data['image_url'] = $existingItem->image_url;
+            }
+        }
+
+        // Versuche Bild-URL zu laden wenn noch nicht vorhanden
+        if (empty($data['image_url'])) {
+            try {
+                $imageData = $this->brickLinkService->fetchCatalogItemImage(
+                    $store,
+                    $blItem['item']['type'],
+                    $blItem['item']['no'],
+                    $blItem['color_id'] ?? 0
+                );
+
+                if (!empty($imageData['thumbnail_url'])) {
+                    $data['image_url'] = $imageData['thumbnail_url'];
+                }
+            } catch (\Exception $e) {
+                // Log aber nicht fehlschlagen lassen
+                Log::debug('Failed to fetch image for inventory item', [
+                    'item_no' => $blItem['item']['no'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return Inventory::updateOrCreate(
             [
                 'store_id' => $store->id,
@@ -158,33 +209,117 @@ class InventoryService
      */
     public function createInventoryInBrickLink(Store $store, array $inventoryData): Inventory
     {
-        // Format data for BrickLink API
-        $blData = $this->mapInventoryToBrickLink($inventoryData);
+        try {
 
-        // Create in BrickLink
-        $blResponse = $this->brickLinkService->createInventory($store, $blData);
+            // Format data for BrickLink API
+            $blData = $this->mapInventoryToBrickLink($inventoryData);
 
-        // Save to local database
-        $data = $this->mapBrickLinkToInventory($blResponse);
-        $data['store_id'] = $store->id;
 
-        $inventory = Inventory::create($data);
+            // Create in BrickLink
+            $blResponse = $this->brickLinkService->createInventory($store, $blData);
 
-        // Log creation
-        \App\Services\ActivityLogger::info(
-            'inventory.item.created',
-            "New inventory item created: {$inventory->item_no} ({$inventory->item_type})",
-            $inventory,
-            [
-                'item_no' => $inventory->item_no,
-                'item_type' => $inventory->item_type,
-                'quantity' => $inventory->quantity,
-                'unit_price' => $inventory->unit_price,
-                'color_name' => $inventory->color_name,
-            ]
-        );
+            Log::info('Item created successfully in BrickLink', [
+                'inventory_id' => $blResponse['inventory_id'] ?? null,
+                'item_no' => $blResponse['item']['no'] ?? null,
+            ]);
 
-        return $inventory;
+            // Save to local database
+            $data = $this->mapBrickLinkToInventory($blResponse);
+            $data['store_id'] = $store->id;
+
+            // Fetch and add price guide suggestion
+            $this->addPriceGuideSuggestion($store, $data, $inventoryData);
+
+            $inventory = Inventory::create($data);
+
+
+            // Log creation
+            \App\Services\ActivityLogger::info(
+                'inventory.item.created',
+                "New inventory item created: {$inventory->item_no} ({$inventory->item_type})",
+                $inventory,
+                [
+                    'item_no' => $inventory->item_no,
+                    'item_type' => $inventory->item_type,
+                    'quantity' => $inventory->quantity,
+                    'unit_price' => $inventory->unit_price,
+                    'color_name' => $inventory->color_name,
+                    'bricklink_synced' => true,
+                    'has_price_guide' => !empty($inventory->avg_price),
+                ]
+            );
+
+            return $inventory;
+        } catch (\Exception $e) {
+            Log::error('Failed to create inventory item in BrickLink', [
+                'store_id' => $store->id,
+                'item_no' => $inventoryData['item_no'] ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            \App\Services\ActivityLogger::error(
+                'inventory.item.creation.failed',
+                "Failed to create inventory item: {$e->getMessage()}",
+                $store,
+                [
+                    'item_no' => $inventoryData['item_no'] ?? null,
+                    'error' => $e->getMessage(),
+                ]
+            );
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Add price guide suggestion to inventory data
+     */
+    private function addPriceGuideSuggestion(Store $store, array &$data, array $inventoryData): void
+    {
+        try {
+            // Only fetch price guide if item has required data
+            if (empty($data['item_no']) || empty($data['item_type'])) {
+                Log::debug('Skipping price guide fetch: missing item_no or item_type');
+                return;
+            }
+
+            $condition = $inventoryData['new_or_used'] ?? 'N';
+
+            Log::info('Fetching price guide suggestion', [
+                'item_no' => $data['item_no'],
+                'item_type' => $data['item_type'],
+                'condition' => $condition,
+            ]);
+
+            $priceGuide = $this->catalogItemService->getPriceGuideSuggestion(
+                $store,
+                $data['item_type'],
+                $data['item_no'],
+                $condition
+            );
+
+            if (!empty($priceGuide)) {
+                $data['avg_price'] = $priceGuide['avg_price'] ?? null;
+                $data['min_price'] = $priceGuide['min_price'] ?? null;
+                $data['max_price'] = $priceGuide['max_price'] ?? null;
+                $data['qty_sold'] = $priceGuide['qty_sold'] ?? null;
+                $data['price_guide_data'] = $priceGuide['price_guide_data'] ?? null;
+                $data['price_guide_fetched_at'] = $priceGuide['fetched_at'] ?? now();
+
+                Log::info('Price guide suggestion added to inventory', [
+                    'item_no' => $data['item_no'],
+                    'avg_price' => $data['avg_price'],
+                    'qty_sold' => $data['qty_sold'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Don't throw - price guide is optional
+            Log::warning('Failed to fetch price guide, continuing without it', [
+                'error' => $e->getMessage(),
+                'item_no' => $data['item_no'] ?? null,
+            ]);
+        }
     }
 
     /**
@@ -192,45 +327,83 @@ class InventoryService
      */
     public function updateInventoryInBrickLink(Store $store, Inventory $inventory, array $inventoryData): Inventory
     {
-        // Store old values for logging
-        $oldValues = $inventory->only(['quantity', 'unit_price', 'is_stock_room']);
-
-        // Format data for BrickLink API
-        $blData = $this->mapInventoryToBrickLink($inventoryData);
-
-        // Update in BrickLink
-        $blResponse = $this->brickLinkService->updateInventory($store, $inventory->inventory_id, $blData);
-
-        // Update local database
-        $data = $this->mapBrickLinkToInventory($blResponse);
-        $inventory->update($data);
-
-        $inventory = $inventory->fresh();
-
-        // Determine what changed
-        $changes = [];
-        foreach (['quantity', 'unit_price', 'is_stock_room'] as $field) {
-            if (isset($oldValues[$field]) && $oldValues[$field] != $inventory->$field) {
-                $changes[$field] = [
-                    'old' => $oldValues[$field],
-                    'new' => $inventory->$field,
-                ];
-            }
-        }
-
-        // Log update
-        \App\Services\ActivityLogger::info(
-            'inventory.item.updated',
-            "Inventory item updated: {$inventory->item_no}",
-            $inventory,
-            [
+        try {
+            Log::info('Starting inventory item update in BrickLink', [
+                'store_id' => $store->id,
+                'inventory_id' => $inventory->inventory_id,
                 'item_no' => $inventory->item_no,
-                'changes' => $changes,
-            ]
-        );
+            ]);
 
-        return $inventory;
+            // Store old values for logging
+            $oldValues = $inventory->only(['quantity', 'unit_price', 'is_stock_room']);
+
+            // Format data for BrickLink API
+            $blData = $this->mapInventoryToBrickLink($inventoryData);
+
+            Log::debug('Mapped inventory data for BrickLink update', [
+                'bl_data' => $blData,
+            ]);
+
+            // Update in BrickLink
+            $blResponse = $this->brickLinkService->updateInventory($store, $inventory->inventory_id, $blData);
+
+            Log::info('Item updated successfully in BrickLink', [
+                'inventory_id' => $inventory->inventory_id,
+                'item_no' => $blResponse['item']['no'] ?? null,
+            ]);
+
+            // Update local database
+            $data = $this->mapBrickLinkToInventory($blResponse);
+            $inventory->update($data);
+
+            $inventory = $inventory->fresh();
+
+            // Determine what changed
+            $changes = [];
+            foreach (['quantity', 'unit_price', 'is_stock_room'] as $field) {
+                if (isset($oldValues[$field]) && $oldValues[$field] != $inventory->$field) {
+                    $changes[$field] = [
+                        'old' => $oldValues[$field],
+                        'new' => $inventory->$field,
+                    ];
+                }
+            }
+
+            // Log update
+            \App\Services\ActivityLogger::info(
+                'inventory.item.updated',
+                "Inventory item updated: {$inventory->item_no}",
+                $inventory,
+                [
+                    'item_no' => $inventory->item_no,
+                    'changes' => $changes,
+                    'bricklink_synced' => true,
+                ]
+            );
+
+            return $inventory;
+        } catch (\Exception $e) {
+            Log::error('Failed to update inventory item in BrickLink', [
+                'store_id' => $store->id,
+                'inventory_id' => $inventory->inventory_id,
+                'item_no' => $inventory->item_no,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            \App\Services\ActivityLogger::error(
+                'inventory.item.update.failed',
+                "Failed to update inventory item: {$e->getMessage()}",
+                $inventory,
+                [
+                    'item_no' => $inventory->item_no,
+                    'error' => $e->getMessage(),
+                ]
+            );
+            throw $e;
+        }
     }
+
 
     /**
      * Delete inventory from BrickLink and local database
@@ -292,6 +465,7 @@ class InventoryService
             'item_type' => $blItem['item']['type'] ?? null,
             'color_id' => $blItem['color_id'] ?? null,
             'color_name' => $blItem['color_name'] ?? null,
+            'image_url' => $blItem['image_url'] ?? null,
             'quantity' => $blItem['quantity'] ?? 0,
             'new_or_used' => $blItem['new_or_used'] ?? 'N',
             'completeness' => $blItem['completeness'] ?? null,
@@ -374,20 +548,22 @@ class InventoryService
             $blData['my_cost'] = $inventoryData['my_cost'];
         }
 
-        // Tier pricing
-        if (isset($inventoryData['tier_quantity1']) && isset($inventoryData['tier_price1'])) {
-            $blData['tier_quantity1'] = $inventoryData['tier_quantity1'];
-            $blData['tier_price1'] = $inventoryData['tier_price1'];
-        }
+        // Tier pricing - BrickLink requires ALL 6 values to be set or none at all
+        $hasTierPricing = isset($inventoryData['tier_quantity1'])
+            || isset($inventoryData['tier_price1'])
+            || isset($inventoryData['tier_quantity2'])
+            || isset($inventoryData['tier_price2'])
+            || isset($inventoryData['tier_quantity3'])
+            || isset($inventoryData['tier_price3']);
 
-        if (isset($inventoryData['tier_quantity2']) && isset($inventoryData['tier_price2'])) {
-            $blData['tier_quantity2'] = $inventoryData['tier_quantity2'];
-            $blData['tier_price2'] = $inventoryData['tier_price2'];
-        }
-
-        if (isset($inventoryData['tier_quantity3']) && isset($inventoryData['tier_price3'])) {
-            $blData['tier_quantity3'] = $inventoryData['tier_quantity3'];
-            $blData['tier_price3'] = $inventoryData['tier_price3'];
+        if ($hasTierPricing) {
+            // If any tier pricing field is set, send all 6 values (use 0 as default)
+            $blData['tier_quantity1'] = $inventoryData['tier_quantity1'] ?? 0;
+            $blData['tier_price1'] = $inventoryData['tier_price1'] ?? 0;
+            $blData['tier_quantity2'] = $inventoryData['tier_quantity2'] ?? 0;
+            $blData['tier_price2'] = $inventoryData['tier_price2'] ?? 0;
+            $blData['tier_quantity3'] = $inventoryData['tier_quantity3'] ?? 0;
+            $blData['tier_price3'] = $inventoryData['tier_price3'] ?? 0;
         }
 
         if (isset($inventoryData['my_weight'])) {

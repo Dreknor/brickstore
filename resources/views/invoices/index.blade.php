@@ -124,7 +124,7 @@
                                 {{ $invoice->invoice_date->format('d.m.Y') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                                {{ number_format($invoice->total, 2, ',', '.') }} {{ $invoice->currency }}
+                                {{ number_format($invoice->total, 3, ',', '.') }} {{ $invoice->currency }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs font-semibold rounded

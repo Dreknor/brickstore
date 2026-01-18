@@ -38,9 +38,9 @@ class ActivityLogger
     /**
      * Log debug event
      */
-    public static function debug(string $event, ?string $description = null, ?array $properties = null): ActivityLog
+    public static function debug(string $event, ?string $description = null, ?Model $model = null, ?array $properties = null): ActivityLog
     {
-        return self::log($event, $description, 'debug', null, $properties);
+        return self::log($event, $description, 'debug', $model, $properties);
     }
 
     /**

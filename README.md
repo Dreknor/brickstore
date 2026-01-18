@@ -81,12 +81,31 @@ Jeder registrierte Benutzer kann seinen eigenen BrickLink-Store verwalten mit:
 - E-Mail-Versand-UI
 - Dashboard mit Statistiken
 
+### 🔄 Kürzlich implementiert (Phase 3)
+
+- **Inventarverwaltung**
+  - BrickLink Inventar-Synchronisation
+  - Automatisches Image-Caching für optimale Performance
+  - Lazy Loading der Bilder
+  - Filter- und Suchfunktionen
+  - Artisan-Commands für Batch-Operations
+
+- **Brickognize-Integration** ✅ **NEU!**
+  - 📸 Kamera-basierte LEGO-Teil-Identifikation
+  - Direkter Zugriff auf Geräte-Kamera oder Datei-Upload
+  - Automatische Inventar-Suche
+  - Quick-Add: Teile zu bestehendem Bestand hinzufügen
+  - Neuen Artikel aus erkannten Daten erstellen
+  - Identifikations-Historie
+
 ### 📅 Geplant (Phase 4+)
 
-- Brickognize Kamera-Integration
-- Inventarverwaltung
+- **Brickognize Erweiterte Features**
+  - Batch-Upload (mehrere Bilder)
+  - Erweiterte Statistiken
+  - PWA-Funktionalität
 - Shipping-Label-Generator
-- Statistiken & Reports
+- Erweiterte Statistiken & Reports
 
 ---
 
@@ -189,6 +208,13 @@ Jeder Store benötigt eigene BrickLink API-Credentials:
 - **[NEXTCLOUD_INTEGRATION.md](docs/NEXTCLOUD_INTEGRATION.md)** - Nextcloud WebDAV Setup & Verwendung
 - **[IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md)** - Detaillierte Implementierungsdokumentation
 - **[IMAGE_CACHING.md](docs/IMAGE_CACHING.md)** - Bilder-Caching-System für Order-Items
+- **[BRICKLINK_INVENTORY_API.md](docs/BRICKLINK_INVENTORY_API.md)** - BrickLink Inventory API-Integration
+- **[BRICKOGNIZE_IMPLEMENTATION_REPORT.md](docs/BRICKOGNIZE_IMPLEMENTATION_REPORT.md)** - ✅ Brickognize Implementierungsbericht
+- **[BRICKOGNIZE_QUICK_START.md](docs/BRICKOGNIZE_QUICK_START.md)** - 🚀 Quick Start Guide für Entwickler
+
+### Geplante Features
+
+- **[BRICKOGNIZE_INTEGRATION.md](docs/BRICKOGNIZE_INTEGRATION.md)** - ✅ Kamera-basierte Teil-Identifikation (IMPLEMENTIERT!)
 
 ### Datenbankstruktur
 

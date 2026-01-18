@@ -248,7 +248,7 @@
                     <td>{{ $item->condition === 'N' ? 'Neu' : 'Gebraucht' }}</td>
                     <td class="text-center">{{ $item->quantity }}</td>
                     <td class="text-right">{{ number_format($item->unit_price, 3, ',', '.') }} €</td>
-                    <td class="text-right">{{ number_format($item->total_price, 2, ',', '.') }} €</td>
+                    <td class="text-right">{{ number_format($item->total_price, 3, ',', '.') }} €</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -260,25 +260,25 @@
                 <tr>
                     <td class="label">Gemäß §19 UstG von der Umsatzsteuer befreit.</td>
                     <td class="value">Warenwert:</td>
-                    <td class="value">{{ number_format($invoice->subtotal, 2, ',', '.') }} €</td>
+                    <td class="value">{{ number_format($invoice->subtotal, 3, ',', '.') }} €</td>
                 </tr>
                 <tr>
-                    <td class="label"></td>
+                    <td class="label">  <!-- Dankeschön -->
+                        <div class="thank-you">
+                            Vielen Dank für Ihre Bestellung!
+                        </div></td>
                     <td class="value">Lieferung / Versand:</td>
-                    <td class="value" style="border-bottom: 1px solid black">{{ number_format($invoice->shipping_cost, 2, ',', '.') }} €</td>
+                    <td class="value" style="border-bottom: 1px solid black">{{ number_format($invoice->shipping_cost, 3, ',', '.') }} €</td>
                 </tr>
                 <tr class="total-row">
                     <td class="label"></td>
                     <td class="value">Gesamtbetrag</td>
-                    <td class="value"  style="border-bottom: black double 4px">{{ number_format($invoice->total, 2, ',', '.') }} €</td>
+                    <td class="value"  style="border-bottom: black double 4px">{{ number_format($invoice->total, 3, ',', '.') }} €</td>
                 </tr>
             </table>
         </div>
 
-        <!-- Dankeschön -->
-        <div class="thank-you">
-            Vielen Dank für Ihre Bestellung!
-        </div>
+
 
         <!-- Footer -->
         <div class="footer">
@@ -306,9 +306,10 @@
                 </div>
                 <div class="footer-column">
                     <strong>Bankverbindung</strong>
-                    {{ $store->bank_name ?? 'Vivid – Banking Circle S.A.' }}<br>
-                    IBAN: {{ $store->bank_iban }}<br>
-                    BIC: {{ $store->bank_bic }}
+                    {{ $store->bank_name }}<br>
+                    {{ $store->bank_account_holder }}<br>
+                    IBAN: {{ $store->iban }}<br>
+                    BIC: {{ $store->bic }}
                 </div>
             </div>
         </div>

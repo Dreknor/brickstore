@@ -37,8 +37,8 @@ class OrderItem extends Model
     {
         return [
             'quantity' => 'integer',
-            'unit_price' => 'decimal:2',
-            'total_price' => 'decimal:2',
+            'unit_price' => 'decimal:3',
+            'total_price' => 'decimal:3',
             'is_packed' => 'boolean',
             'packed_at' => 'datetime',
         ];
