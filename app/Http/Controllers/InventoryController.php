@@ -433,9 +433,8 @@ class InventoryController extends Controller
         try {
             // Count images that need to be cached
             $imagesToCache = \App\Models\Inventory::where('store_id', $store->id)
-                ->whereNotNull('image_url')
                 ->where('image_url', 'NOT LIKE', '%/storage/%')
-                ->where('image_url', '!=', '')
+                ->orWhereNull('image_url')
                 ->count();
 
             if ($imagesToCache === 0) {
