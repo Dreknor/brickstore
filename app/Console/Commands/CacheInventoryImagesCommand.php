@@ -43,7 +43,10 @@ class CacheInventoryImagesCommand extends Command
             if ($sync) {
                 // Run synchronously
                 $job = new CacheInventoryImagesJob($store->id, $limit);
-                $job->handle(app(\App\Services\BrickLink\ImageCacheService::class));
+                $job->handle(
+                    app(\App\Services\BrickLink\ImageCacheService::class),
+                    app(\App\Services\BrickLink\CatalogItemService::class)
+                );
                 $this->info('Image caching completed.');
             } else {
                 // Dispatch as job
@@ -66,7 +69,10 @@ class CacheInventoryImagesCommand extends Command
 
                 if ($sync) {
                     $job = new CacheInventoryImagesJob($store->id, $limit);
-                    $job->handle(app(\App\Services\BrickLink\ImageCacheService::class));
+                    $job->handle(
+                        app(\App\Services\BrickLink\ImageCacheService::class),
+                        app(\App\Services\BrickLink\CatalogItemService::class)
+                    );
                 } else {
                     CacheInventoryImagesJob::dispatch($store->id, $limit);
                 }

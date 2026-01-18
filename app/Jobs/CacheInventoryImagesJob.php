@@ -36,17 +36,23 @@ class CacheInventoryImagesJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(ImageCacheService $imageCacheService): void
+    public function handle(
+        ImageCacheService $imageCacheService,
+        \App\Services\BrickLink\CatalogItemService $catalogItemService
+    ): void
     {
         Log::info('Starting inventory image caching', [
             'store_id' => $this->storeId,
             'limit' => $this->limit,
         ]);
 
+        // Finde alle Inventare, die entweder keine image_url haben
+        // oder eine externe URL (nicht gecacht) haben
         $query = Inventory::where('store_id', $this->storeId)
-            ->whereNull('image_url')
-            ->orWhere(function ($q) {
-                $q->where('image_url', 'not like', asset('storage/') . '%');
+            ->where(function ($q) {
+                $q->whereNull('image_url')
+                    ->orWhere('image_url', '')
+                    ->orWhere('image_url', 'not like', asset('storage/') . '%');
             });
 
         if ($this->limit) {
@@ -56,16 +62,54 @@ class CacheInventoryImagesJob implements ShouldQueue
         $inventories = $query->get();
         $cached = 0;
         $failed = 0;
+        $fetched = 0; // Bild-URLs von BrickLink geholt
+
+        $store = \App\Models\Store::find($this->storeId);
+        if (!$store) {
+            Log::error('Store not found', ['store_id' => $this->storeId]);
+            return;
+        }
 
         foreach ($inventories as $inventory) {
             try {
+                $imageUrl = $inventory->image_url;
+
+                // Wenn keine Bild-URL vorhanden ist, versuche sie von BrickLink zu holen
+                if (empty($imageUrl)) {
+                    Log::debug('Fetching image URL from BrickLink', [
+                        'inventory_id' => $inventory->id,
+                        'item_type' => $inventory->item_type,
+                        'item_no' => $inventory->item_no,
+                        'color_id' => $inventory->color_id,
+                    ]);
+
+                    $imageUrl = $catalogItemService->getItemImage(
+                        $store,
+                        $inventory->item_type,
+                        $inventory->item_no,
+                        $inventory->color_id
+                    );
+
+                    if (empty($imageUrl)) {
+                        Log::warning('No image URL found on BrickLink', [
+                            'inventory_id' => $inventory->id,
+                            'item_no' => $inventory->item_no,
+                        ]);
+                        $failed++;
+                        continue;
+                    }
+
+                    $fetched++;
+                }
+
                 // Überspringe bereits gecachte Bilder (die mit /storage/ beginnen)
-                if (str_starts_with($inventory->image_url, asset('storage/'))) {
+                if (str_starts_with($imageUrl, asset('storage/'))) {
                     continue;
                 }
 
+                // Cache das Bild lokal
                 $cachedUrl = $imageCacheService->cacheImage(
-                    $inventory->image_url,
+                    $imageUrl,
                     $inventory->item_type,
                     $inventory->item_no,
                     $inventory->color_id
@@ -95,17 +139,19 @@ class CacheInventoryImagesJob implements ShouldQueue
         Log::info('Inventory image caching completed', [
             'store_id' => $this->storeId,
             'total' => $inventories->count(),
+            'fetched_from_bricklink' => $fetched,
             'cached' => $cached,
             'failed' => $failed,
         ]);
 
         \App\Services\ActivityLogger::info(
             'inventory.images.cached',
-            "Inventory images cached: {$cached} of {$inventories->count()} items",
+            "Inventory images cached: {$cached} of {$inventories->count()} items (fetched {$fetched} from BrickLink)",
             null,
             [
                 'store_id' => $this->storeId,
                 'total' => $inventories->count(),
+                'fetched_from_bricklink' => $fetched,
                 'cached' => $cached,
                 'failed' => $failed,
             ]
