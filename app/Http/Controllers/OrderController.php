@@ -180,12 +180,26 @@ class OrderController extends Controller
         try {
             $service = new \App\Services\BrickLink\BrickLinkService;
             $orders = $service->fetchOrders($store, '');
+
+            Log::info('Manual order sync started', [
+                'store_id' => $store->id,
+                'store_name' => $store->name,
+                'total_orders_fetched' => count($orders),
+            ]);
+
             $synced = 0;
+            $skipped = 0;
+            $failed = 0;
 
             foreach ($orders as $orderData) {
-                // Skip orders older than 7 days for manual sync
+                // Skip orders older than 30 days for manual sync
                 $orderDate = \Carbon\Carbon::parse($orderData['date_ordered']);
-                if ($orderDate->lt(now()->subDays(7))) {
+                if ($orderDate->lt(now()->subDays(30))) {
+                    $skipped++;
+                    Log::debug("Skipping old order {$orderData['order_id']}", [
+                        'order_date' => $orderDate->toDateString(),
+                        'days_old' => $orderDate->diffInDays(now()),
+                    ]);
                     continue;
                 }
 
@@ -194,14 +208,39 @@ class OrderController extends Controller
                     $completeOrderData = $service->fetchOrder($store, $orderData['order_id']);
                     $this->syncOrderData($store, $completeOrderData, $service);
                     $synced++;
+
+                    Log::debug("Synced order {$orderData['order_id']}", [
+                        'order_date' => $orderDate->toDateString(),
+                        'status' => $orderData['status'] ?? 'unknown',
+                    ]);
                 } catch (\Exception $e) {
-                    Log::warning("Could not sync order {$orderData['order_id']}: {$e->getMessage()}");
+                    $failed++;
+                    Log::warning("Could not sync order {$orderData['order_id']}: {$e->getMessage()}", [
+                        'order_id' => $orderData['order_id'],
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
 
-            return redirect()->back()->with('success', "Order synchronization completed. Synced {$synced} orders.");
+            Log::info('Manual order sync completed', [
+                'store_id' => $store->id,
+                'total_fetched' => count($orders),
+                'synced' => $synced,
+                'skipped' => $skipped,
+                'failed' => $failed,
+            ]);
+
+            $message = "Order synchronization completed. Synced {$synced} orders.";
+            if ($skipped > 0) {
+                $message .= " Skipped {$skipped} orders (older than 30 days).";
+            }
+            if ($failed > 0) {
+                $message .= " {$failed} orders failed.";
+            }
+
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
-            Log::error('Order sync failed', ['error' => $e->getMessage()]);
+            Log::error('Order sync failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', 'Order synchronization failed: ' . $e->getMessage());
         }
     }

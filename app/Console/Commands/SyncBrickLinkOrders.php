@@ -136,91 +136,109 @@ class SyncBrickLinkOrders extends Command
      */
     protected function syncOrder(Store $store, array $orderData): void
     {
-        $order = Order::updateOrCreate(
-            [
-                'store_id' => $store->id,
-                'bricklink_order_id' => $orderData['order_id'],
-            ],
-            [
-                // Timestamps
-                'order_date' => $orderData['date_ordered'],
-                'date_ordered' => $orderData['date_ordered'],
-                'date_status_changed' => $orderData['date_status_changed'] ?? null,
+        // Check if order exists (including soft-deleted ones)
+        $order = Order::withTrashed()
+            ->where('store_id', $store->id)
+            ->where('bricklink_order_id', $orderData['order_id'])
+            ->first();
 
-                // Status & Counts
-                'status' => $orderData['status'],
-                'total_count' => $orderData['total_count'] ?? 0,
-                'unique_count' => $orderData['unique_count'] ?? 0,
+        $orderAttributes = [
+            // Timestamps
+            'order_date' => $orderData['date_ordered'],
+            'date_ordered' => $orderData['date_ordered'],
+            'date_status_changed' => $orderData['date_status_changed'] ?? null,
 
-                // Buyer Information
-                'buyer_name' => $orderData['buyer_name'] ?? '',
-                'buyer_email' => $orderData['buyer_email'] ?? null,
-                'buyer_username' => $orderData['username'] ?? null,
-                'buyer_order_count' => $orderData['buyer_order_count'] ?? 0,
+            // Status & Counts
+            'status' => $orderData['status'],
+            'total_count' => $orderData['total_count'] ?? 0,
+            'unique_count' => $orderData['unique_count'] ?? 0,
 
-                // Shipping Address
-                'shipping_name' => $orderData['shipping']['address']['name']['full'] ?? null,
-                'shipping_address1' => $orderData['shipping']['address']['address1'] ?? null,
-                'shipping_address2' => $orderData['shipping']['address']['address2'] ?? null,
-                'shipping_city' => $orderData['shipping']['address']['city'] ?? null,
-                'shipping_state' => $orderData['shipping']['address']['state'] ?? null,
-                'shipping_postal_code' => $orderData['shipping']['address']['postal_code'] ?? null,
-                'shipping_country' => $orderData['shipping']['address']['country_code'] ?? null,
+            // Buyer Information
+            'buyer_name' => $orderData['buyer_name'] ?? '',
+            'buyer_email' => $orderData['buyer_email'] ?? null,
+            'buyer_username' => $orderData['username'] ?? null,
+            'buyer_order_count' => $orderData['buyer_order_count'] ?? 0,
 
-                // Cost Information
-                'subtotal' => $orderData['cost']['subtotal'] ?? 0,
-                'grand_total' => $orderData['cost']['grand_total'] ?? 0,
-                'final_total' => $orderData['cost']['final_total'] ?? ($orderData['cost']['grand_total'] ?? 0),
-                'shipping_cost' => $orderData['cost']['shipping'] ?? 0,
-                'insurance' => $orderData['cost']['insurance'] ?? 0,
-                'tax' => $orderData['cost']['salesTax'] ?? 0,
-                'discount' => $orderData['cost']['etc1'] ?? 0,
-                'etc1' => $orderData['cost']['etc1'] ?? 0,
-                'etc2' => $orderData['cost']['etc2'] ?? 0,
-                'credit' => $orderData['cost']['credit'] ?? 0,
-                'credit_coupon' => $orderData['cost']['credit_coupon'] ?? 0,
-                'currency_code' => $orderData['cost']['currency_code'] ?? 'EUR',
+            // Shipping Address
+            'shipping_name' => $orderData['shipping']['address']['name']['full'] ?? null,
+            'shipping_address1' => $orderData['shipping']['address']['address1'] ?? null,
+            'shipping_address2' => $orderData['shipping']['address']['address2'] ?? null,
+            'shipping_city' => $orderData['shipping']['address']['city'] ?? null,
+            'shipping_state' => $orderData['shipping']['address']['state'] ?? null,
+            'shipping_postal_code' => $orderData['shipping']['address']['postal_code'] ?? null,
+            'shipping_country' => $orderData['shipping']['address']['country_code'] ?? null,
 
-                // VAT Information
-                'vat_collected_by_bl' => $orderData['vat_collected_by_bl'] ?? false,
-                'vat_rate' => $orderData['cost']['vat_rate'] ?? null,
-                'vat_amount' => $orderData['cost']['vat_amount'] ?? 0,
-                'salesTax_collected_by_bl' => $orderData['salesTax_collected_by_bl'] ?? false,
+            // Cost Information
+            'subtotal' => $orderData['cost']['subtotal'] ?? 0,
+            'grand_total' => $orderData['cost']['grand_total'] ?? 0,
+            'final_total' => $orderData['cost']['final_total'] ?? ($orderData['cost']['grand_total'] ?? 0),
+            'shipping_cost' => $orderData['cost']['shipping'] ?? 0,
+            'insurance' => $orderData['cost']['insurance'] ?? 0,
+            'tax' => $orderData['cost']['salesTax'] ?? 0,
+            'discount' => $orderData['cost']['etc1'] ?? 0,
+            'etc1' => $orderData['cost']['etc1'] ?? 0,
+            'etc2' => $orderData['cost']['etc2'] ?? 0,
+            'credit' => $orderData['cost']['credit'] ?? 0,
+            'credit_coupon' => $orderData['cost']['credit_coupon'] ?? 0,
+            'currency_code' => $orderData['cost']['currency_code'] ?? 'EUR',
 
-                // Display Cost (in different currency)
-                'display_currency_code' => $orderData['disp_cost']['currency_code'] ?? null,
-                'disp_subtotal' => $orderData['disp_cost']['subtotal'] ?? null,
-                'disp_grand_total' => $orderData['disp_cost']['grand_total'] ?? null,
-                'disp_final_total' => $orderData['disp_cost']['final_total'] ?? null,
-                'disp_shipping' => $orderData['disp_cost']['shipping'] ?? null,
-                'disp_insurance' => $orderData['disp_cost']['insurance'] ?? null,
-                'disp_etc1' => $orderData['disp_cost']['etc1'] ?? null,
-                'disp_etc2' => $orderData['disp_cost']['etc2'] ?? null,
-                'disp_vat' => $orderData['disp_cost']['vat_amount'] ?? null,
+            // VAT Information
+            'vat_collected_by_bl' => $orderData['vat_collected_by_bl'] ?? false,
+            'vat_rate' => $orderData['cost']['vat_rate'] ?? null,
+            'vat_amount' => $orderData['cost']['vat_amount'] ?? 0,
+            'salesTax_collected_by_bl' => $orderData['salesTax_collected_by_bl'] ?? false,
 
-                // Shipping Information
-                'shipping_method' => $orderData['shipping']['method'] ?? null,
-                'tracking_number' => $orderData['shipping']['tracking_no'] ?? null,
-                'tracking_link' => $orderData['shipping']['tracking_link'] ?? null,
+            // Display Cost (in different currency)
+            'display_currency_code' => $orderData['disp_cost']['currency_code'] ?? null,
+            'disp_subtotal' => $orderData['disp_cost']['subtotal'] ?? null,
+            'disp_grand_total' => $orderData['disp_cost']['grand_total'] ?? null,
+            'disp_final_total' => $orderData['disp_cost']['final_total'] ?? null,
+            'disp_shipping' => $orderData['disp_cost']['shipping'] ?? null,
+            'disp_insurance' => $orderData['disp_cost']['insurance'] ?? null,
+            'disp_etc1' => $orderData['disp_cost']['etc1'] ?? null,
+            'disp_etc2' => $orderData['disp_cost']['etc2'] ?? null,
+            'disp_vat' => $orderData['disp_cost']['vat_amount'] ?? null,
 
-                // Payment Information
-                'payment_method' => $orderData['payment']['method'] ?? null,
-                'is_paid' => $orderData['payment']['status'] === 'Received',
-                'paid_date' => isset($orderData['payment']['date_paid']) ? $orderData['payment']['date_paid'] : null,
+            // Shipping Information
+            'shipping_method' => $orderData['shipping']['method'] ?? null,
+            'tracking_number' => $orderData['shipping']['tracking_no'] ?? null,
+            'tracking_link' => $orderData['shipping']['tracking_link'] ?? null,
 
-                // Order Flags
-                'is_filed' => $orderData['is_filed'] ?? false,
-                'drive_thru_sent' => $orderData['drive_thru_sent'] ?? false,
+            // Payment Information
+            'payment_method' => $orderData['payment']['method'] ?? null,
+            'is_paid' => isset($orderData['payment']['status']) && $orderData['payment']['status'] === 'Received',
+            'paid_date' => isset($orderData['payment']['date_paid']) ? $orderData['payment']['date_paid'] : null,
 
-                // Remarks
-                'buyer_remarks' => $orderData['remarks'] ?? null,
-                'seller_remarks' => $orderData['seller_remarks'] ?? null,
+            // Order Flags
+            'is_filed' => $orderData['is_filed'] ?? false,
+            'drive_thru_sent' => $orderData['drive_thru_sent'] ?? false,
 
-                // Sync Status
-                'last_synced_at' => now(),
-                'raw_data' => $orderData,
-            ]
-        );
+            // Remarks
+            'buyer_remarks' => $orderData['remarks'] ?? null,
+            'seller_remarks' => $orderData['seller_remarks'] ?? null,
+
+            // Sync Status
+            'last_synced_at' => now(),
+            'raw_data' => $orderData,
+        ];
+
+        // If order exists but is soft-deleted, restore it
+        if ($order && $order->trashed()) {
+            $order->restore();
+        }
+
+        // Update or create the order
+        if ($order) {
+            $order->update($orderAttributes);
+        } else {
+            $order = Order::create(array_merge(
+                [
+                    'store_id' => $store->id,
+                    'bricklink_order_id' => $orderData['order_id'],
+                ],
+                $orderAttributes
+            ));
+        }
 
         // Sync order items
         $this->syncOrderItems($order, $orderData['order_id']);

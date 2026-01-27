@@ -107,12 +107,13 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
      */
     protected function syncOrder(array $orderData, BrickLinkService $service): void
     {
-        $order = Order::updateOrCreate(
-            [
-                'store_id' => $this->store->id,
-                'bricklink_order_id' => $orderData['order_id'],
-            ],
-            [
+        // Check if order exists (including soft-deleted ones)
+        $order = Order::withTrashed()
+            ->where('store_id', $this->store->id)
+            ->where('bricklink_order_id', $orderData['order_id'])
+            ->first();
+
+        $orderAttributes = [
                 // Timestamps
                 'order_date' => $orderData['date_ordered'],
                 'date_ordered' => $orderData['date_ordered'],
@@ -176,7 +177,7 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
 
                 // Payment Information
                 'payment_method' => $orderData['payment']['method'] ?? null,
-                'is_paid' => $orderData['payment']['status'] === 'Received',
+                'is_paid' => isset($orderData['payment']['status']) && $orderData['payment']['status'] === 'Received',
                 'paid_date' => isset($orderData['payment']['date_paid']) ? $orderData['payment']['date_paid'] : null,
 
                 // Order Flags
@@ -190,8 +191,25 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
                 // Sync Status
                 'last_synced_at' => now(),
                 'raw_data' => $orderData,
-            ]
-        );
+        ];
+
+        // If order exists but is soft-deleted, restore it
+        if ($order && $order->trashed()) {
+            $order->restore();
+        }
+
+        // Update or create the order
+        if ($order) {
+            $order->update($orderAttributes);
+        } else {
+            $order = Order::create(array_merge(
+                [
+                    'store_id' => $this->store->id,
+                    'bricklink_order_id' => $orderData['order_id'],
+                ],
+                $orderAttributes
+            ));
+        }
 
         // Sync order items
         $this->syncOrderItems($order, $orderData['order_id'], $service);
