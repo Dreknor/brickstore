@@ -20,7 +20,7 @@ class ProcessImageCachingQueueCommand extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Process inventory image caching queue (runs every minute via cron)';
+    protected $description = 'Process inventory image caching queue (runs every 5 minutes via cron)';
 
     /**
      * Execute the console command.
@@ -56,7 +56,7 @@ class ProcessImageCachingQueueCommand extends Command
             if ($needsCaching) {
                 // Prüfe, ob bereits ein Job für diesen Store in der Queue ist
                 $existingJobs = DB::table('jobs')
-                    ->where('queue', 'default')
+                    ->whereIn('queue', ['default', 'images'])
                     ->where('payload', 'like', '%CacheInventoryImagesJob%')
                     ->where('payload', 'like', '%"storeId":' . $store->id . '%')
                     ->count();
@@ -72,7 +72,7 @@ class ProcessImageCachingQueueCommand extends Command
                     $this->line("✓ Dispatched image caching job for store: {$store->name} (ID: {$store->id})");
                     $dispatched++;
                 } else {
-                    $this->line("⊙ Job already queued for store: {$store->name} (ID: {$store->id})");
+                    $this->line("⊙ Job already queued for store: {$store->name} (ID: {$store->id}) - {$existingJobs} job(s) pending");
                 }
             }
         }

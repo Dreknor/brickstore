@@ -8,9 +8,10 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule automatic BrickLink order synchronization
-Schedule::command('bricklink:sync-orders --days=7')
-    ->hourly()
+// Schedule automatic BrickLink order synchronization - runs every 5 minutes
+// Only syncs recent orders (last 2 days) to keep it fast and catch new orders quickly
+Schedule::command('bricklink:sync-orders --days=2')
+    ->everyFiveMinutes()
     ->withoutOverlapping()
     ->runInBackground()
     ->onFailure(function () {

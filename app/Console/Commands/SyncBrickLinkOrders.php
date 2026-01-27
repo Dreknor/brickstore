@@ -19,7 +19,8 @@ class SyncBrickLinkOrders extends Command
     protected $signature = 'bricklink:sync-orders
                             {--store= : Store ID to sync (default: all active stores)}
                             {--status= : Filter by order status}
-                            {--days= : Sync orders from last X days (default: 30)}';
+                            {--days= : Sync orders from last X days (default: 30)}
+                            {--direct : Execute directly without using queue (for manual sync)}';
 
     /**
      * The console command description.
@@ -36,6 +37,7 @@ class SyncBrickLinkOrders extends Command
         $storeId = $this->option('store');
         $status = $this->option('status');
         $days = $this->option('days') ?? 30;
+        $direct = $this->option('direct');
 
         $stores = $storeId
             ? Store::where('id', $storeId)->get()
@@ -59,16 +61,26 @@ class SyncBrickLinkOrders extends Command
             $this->info("Syncing orders for store: {$store->name}");
 
             try {
-                $synced = $this->syncStoreOrders($store, $status, $days);
-                $totalSynced += $synced;
-
-                $this->info("✓ Synced {$synced} orders for {$store->name}");
+                if ($direct) {
+                    // Direct sync without queue - runs immediately (for manual sync)
+                    $synced = $this->syncStoreOrders($store, $status, $days);
+                    $totalSynced += $synced;
+                    $this->info("✓ Synced {$synced} orders for {$store->name}");
+                } else {
+                    // Queue the sync job for background processing (for scheduled sync)
+                    \App\Jobs\SyncBrickLinkOrdersJob::dispatch($store, $status, $days);
+                    $this->info("✓ Queued sync job for {$store->name}");
+                }
             } catch (\Exception $e) {
                 $this->error("✗ Error syncing {$store->name}: {$e->getMessage()}");
             }
         }
 
-        $this->info("Total orders synced: {$totalSynced}");
+        if ($direct) {
+            $this->info("Total orders synced: {$totalSynced}");
+        } else {
+            $this->info("Total sync jobs queued: " . $stores->count());
+        }
 
         return self::SUCCESS;
     }

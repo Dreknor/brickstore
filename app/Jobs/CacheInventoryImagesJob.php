@@ -16,6 +16,11 @@ class CacheInventoryImagesJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
+     * The queue this job should be sent to.
+     */
+    public string $queue = 'images';
+
+    /**
      * The number of times the job may be attempted.
      */
     public int $tries = 3;
@@ -28,7 +33,7 @@ class CacheInventoryImagesJob implements ShouldQueue
     /**
      * Default batch size for processing images.
      */
-    public const DEFAULT_BATCH_SIZE = 10;
+    public const DEFAULT_BATCH_SIZE = 50;
 
     /**
      * Create a new job instance.
@@ -179,9 +184,9 @@ class CacheInventoryImagesJob implements ShouldQueue
                     'remaining' => $remainingCount,
                 ]);
 
-                // Dispatch nächsten Batch mit einer kleinen Verzögerung
+                // Dispatch nächsten Batch mit einer Verzögerung von 30 Sekunden
                 self::dispatch($this->storeId, $this->limit, true)
-                    ->delay(now()->addSeconds(5));
+                    ->delay(now()->addSeconds(30));
             }
         }
     }
