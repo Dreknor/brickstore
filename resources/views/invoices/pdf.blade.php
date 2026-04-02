@@ -5,6 +5,14 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Rechnung {{ $invoice->invoice_number }}</title>
     <style>
+        /* ─── Page margins: bottom reserved for fixed footer ─── */
+        @page {
+            margin-top:    15mm;
+            margin-right:  12mm;
+            margin-bottom: 38mm;
+            margin-left:   12mm;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -18,16 +26,19 @@
             background: #fff;
         }
 
-        /* ─── Accent stripe ─── */
+        /* ─── Accent stripe (fixed = repeats top of every page) ─── */
         .accent-bar {
-            background-color: #1e3a5f;
+            position: fixed;
+            top:   -15mm;   /* into the top margin */
+            left:  -12mm;
+            right: -12mm;
             height: 7px;
-            width: 100%;
+            background-color: #1e3a5f;
         }
 
         /* ─── Page container ─── */
         .page {
-            padding: 22px 30px 130px 30px;
+            padding: 10px 0 20px 0;
         }
 
         /* ─── Two-column helpers ─── */
@@ -99,12 +110,17 @@
         }
         .recipient {
             font-size: 10pt;
-            line-height: 1.65;
+            line-height: 1.7;
             color: #1a1a2e;
         }
         .recipient-name {
             font-size: 11pt;
             font-weight: bold;
+        }
+        /* Each address line stays on one line – prevents house-number wrap */
+        .recipient-line {
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         /* ─── Invoice details box ─── */
@@ -144,17 +160,17 @@
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8.5pt;
+            font-size: 7.5pt;
             margin-bottom: 6px;
         }
         .items-table thead tr {
             background-color: #1e3a5f;
         }
         .items-table thead th {
-            padding: 7px 7px;
+            padding: 6px 7px;
             text-align: left;
             color: #fff;
-            font-size: 7pt;
+            font-size: 6.5pt;
             font-weight: bold;
             letter-spacing: 0.5px;
             text-transform: uppercase;
@@ -165,30 +181,34 @@
         .items-table tbody tr.row-odd {
             background-color: #ffffff;
         }
+        .items-table tbody tr {
+            page-break-inside: avoid;
+        }
         .items-table tbody td {
-            padding: 7px 7px;
+            padding: 5px 7px;
             border-bottom: 1px solid #e8ecf2;
             vertical-align: top;
         }
         .item-nr {
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #6b7c93;
             font-family: 'DejaVu Sans Mono', monospace;
         }
         .item-name {
+            font-size: 7.5pt;
             font-weight: bold;
             color: #1a1a2e;
-            line-height: 1.4;
+            line-height: 1.35;
         }
         .item-meta {
-            font-size: 7pt;
+            font-size: 6.5pt;
             color: #7a8ca0;
-            margin-top: 2px;
-            line-height: 1.5;
+            margin-top: 1px;
+            line-height: 1.4;
         }
         .badge {
-            font-size: 6.5pt;
-            padding: 1px 5px;
+            font-size: 6pt;
+            padding: 1px 4px;
         }
         .badge-new {
             background-color: #e8f5e9;
@@ -202,11 +222,12 @@
         .text-center { text-align: center; }
         .font-bold   { font-weight: bold; }
 
-        /* ─── Summary area ─── */
+        /* ─── Summary area (keep together on page) ─── */
         .summary-area {
             display: table;
             width: 100%;
             margin-top: 16px;
+            page-break-inside: avoid;
         }
         .summary-left {
             display: table-cell;
@@ -265,13 +286,13 @@
             text-align: right;
         }
 
-        /* ─── Footer (fixed → repeats on every page) ─── */
+        /* ─── Footer (fixed → repeats on every page via @page bottom margin) ─── */
         .footer {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 9px 30px 8px 30px;
+            bottom: -30mm;   /* pushes into the reserved @page bottom margin */
+            left:   -12mm;
+            right:  -12mm;
+            padding: 8px 12mm 6px 12mm;
             border-top: 2px solid #1e3a5f;
             background-color: #fff;
         }
@@ -300,7 +321,7 @@
 </head>
 <body>
 
-    <!-- Accent stripe -->
+    <!-- Accent stripe (position:fixed → repeats on every page) -->
     <div class="accent-bar"></div>
 
     <div class="page">
@@ -331,11 +352,16 @@
                 </div>
                 <div class="recipient">
                     <div class="recipient-name">{{ $invoice->customer_name }}</div>
-                    @if($invoice->customer_address1){{ $invoice->customer_address1 }}<br>@endif
-                    @if($invoice->customer_address2){{ $invoice->customer_address2 }}<br>@endif
-                    {{ $invoice->customer_postal_code }} {{ $invoice->customer_city }}
-                    @if($invoice->customer_state) &middot; {{ $invoice->customer_state }}@endif
-                    @if($invoice->customer_country && $invoice->customer_country !== 'DE' && $invoice->customer_country !== 'Deutschland')<br>{{ $invoice->customer_country }}@endif
+                    @if($invoice->customer_address1)
+                        <div class="recipient-line">{{ $invoice->customer_address1 }}</div>
+                    @endif
+                    @if($invoice->customer_address2)
+                        <div class="recipient-line">{{ $invoice->customer_address2 }}</div>
+                    @endif
+                    <div class="recipient-line">{{ $invoice->customer_postal_code }} {{ $invoice->customer_city }}@if($invoice->customer_state) &middot; {{ $invoice->customer_state }}@endif</div>
+                    @if($invoice->customer_country && $invoice->customer_country !== 'DE' && $invoice->customer_country !== 'Deutschland')
+                        <div class="recipient-line">{{ $invoice->customer_country }}</div>
+                    @endif
                 </div>
             </div>
             <div class="details-col">
