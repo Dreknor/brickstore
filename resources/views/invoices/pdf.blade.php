@@ -5,14 +5,6 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Rechnung {{ $invoice->invoice_number }}</title>
     <style>
-        /* ─── Page margins: bottom reserved for fixed footer ─── */
-        @page {
-            margin-top:    15mm;
-            margin-right:  12mm;
-            margin-bottom: 38mm;
-            margin-left:   12mm;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -26,19 +18,20 @@
             background: #fff;
         }
 
-        /* ─── Accent stripe (fixed = repeats top of every page) ─── */
+        /* ─── Accent stripe (fixed → repeats top of every page) ─── */
         .accent-bar {
             position: fixed;
-            top:   -15mm;   /* into the top margin */
-            left:  -12mm;
-            right: -12mm;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 7px;
             background-color: #1e3a5f;
         }
 
-        /* ─── Page container ─── */
+        /* ─── Page container: padding creates the visual page margins ─── */
+        /* top: clears accent bar · sides: 30px ≈ 11 mm · bottom: clears footer */
         .page {
-            padding: 10px 0 20px 0;
+            padding: 18px 30px 115px 30px;
         }
 
         /* ─── Two-column helpers ─── */
@@ -286,13 +279,13 @@
             text-align: right;
         }
 
-        /* ─── Footer (fixed → repeats on every page via @page bottom margin) ─── */
+        /* ─── Footer (fixed → repeats on every page) ─── */
         .footer {
             position: fixed;
-            bottom: -30mm;   /* pushes into the reserved @page bottom margin */
-            left:   -12mm;
-            right:  -12mm;
-            padding: 8px 12mm 6px 12mm;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 30px 7px 30px;   /* left/right = .page padding */
             border-top: 2px solid #1e3a5f;
             background-color: #fff;
         }
