@@ -15,10 +15,6 @@ class CacheInventoryImagesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * The queue this job should be sent to.
-     */
-    public string $queue = 'images';
 
     /**
      * The number of times the job may be attempted.
@@ -42,7 +38,9 @@ class CacheInventoryImagesJob implements ShouldQueue
         public int $storeId,
         public ?int $limit = self::DEFAULT_BATCH_SIZE,
         public bool $autoChain = true
-    ) {}
+    ) {
+        $this->onQueue('images');
+    }
 
     /**
      * Execute the job.
