@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Store;
 use App\Services\BrickLink\BrickLinkService;
+use App\Services\PushNotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -209,6 +210,16 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
                 ],
                 $orderAttributes
             ));
+
+            // Push-Benachrichtigung bei neuer Bestellung senden
+            try {
+                app(PushNotificationService::class)->notifyNewOrder($this->store, $order);
+            } catch (\Exception $e) {
+                Log::warning('Push-Benachrichtigung konnte nicht gesendet werden', [
+                    'order_id' => $order->id,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
         }
 
         // Sync order items

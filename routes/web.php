@@ -25,6 +25,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('store/settings/nextcloud/test', [App\Http\Controllers\StoreController::class, 'testNextcloud'])->name('store.settings.nextcloud.test');
     Route::post('store/settings/colors/sync', [App\Http\Controllers\StoreController::class, 'syncColors'])->name('store.settings.colors.sync');
 
+    // Push Notifications
+    Route::post('push/subscribe', [App\Http\Controllers\WebPushController::class, 'subscribe'])->name('push.subscribe');
+    Route::post('push/unsubscribe', [App\Http\Controllers\WebPushController::class, 'unsubscribe'])->name('push.unsubscribe');
+
     // Settings
     Route::get('settings/profile', [Settings\ProfileController::class, 'edit'])->name('settings.profile.edit');
     Route::put('settings/profile', [Settings\ProfileController::class, 'update'])->name('settings.profile.update');
