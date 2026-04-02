@@ -160,7 +160,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-sm font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
-                                        {{ number_format($order->grand_total, 3, ',', '.') }} {{ $order->currency_code }}
+                                        {{ number_format($order->grand_total, 2, ',', '.') }} {{ $order->currency_code }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -243,6 +243,7 @@
                 </div>
             @endif
         </div>
+    </div>
     </div>
 </x-layouts.app>
 

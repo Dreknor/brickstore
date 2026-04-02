@@ -22,7 +22,7 @@
                         @if($order->last_synced_at)
                             <span><i class="fa-solid fa-clock"></i> Synchronisiert: {{ $order->last_synced_at->format('d.m.Y H:i') }}</span>
                         @endif
-                        <span><i class="fa-solid fa-coins"></i> {{ number_format($order->final_total > 0 ? $order->final_total : $order->grand_total, 3, ',', '.') }} {{ $order->currency_code }}</span>
+                        <span><i class="fa-solid fa-coins"></i> {{ number_format($order->final_total > 0 ? $order->final_total : $order->grand_total, 2, ',', '.') }} {{ $order->currency_code }}</span>
                         <span><i class="fa-solid fa-box"></i> {{ $order->total_count }} Artikel</span>
                         @if($order->unique_count > 0)
                             <span><i class="fa-solid fa-cubes"></i> {{ $order->unique_count }} eindeutige Artikel</span>
@@ -169,7 +169,7 @@
                                 <dt class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Versandkosten</dt>
                                 <dd class="text-base text-gray-900 dark:text-white font-semibold flex items-center gap-2">
                                     <i class="fa-solid fa-dollar-sign text-green-500"></i>
-                                    {{ number_format($order->shipping_cost, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->shipping_cost, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                             @if($order->tracking_number)
@@ -268,7 +268,7 @@
                                             {{ number_format($item->unit_price, 3, ',', '.') }} {{ $order->currency_code }}
                                         </td>
                                         <td class="px-4 py-3 text-sm text-right font-mono font-semibold text-gray-900 dark:text-white">
-                                            {{ number_format($item->total_price, 3, ',', '.') }} {{ $order->currency_code }}
+                                            {{ number_format($item->total_price, 2, ',', '.') }} {{ $order->currency_code }}
                                         </td>
                                     </tr>
                                 @endforeach
@@ -333,7 +333,6 @@
                     </dl>
                 </div>
             </div>
-            </div>
             <!-- Rechte Spalte -->
             <div class="col-span-1 space-y-6">
                 <!-- Status-Übersicht -->
@@ -389,20 +388,20 @@
                         <div class="flex justify-between">
                             <dt class="text-gray-500 dark:text-gray-400">Zwischensumme</dt>
                             <dd class="text-gray-900 dark:text-white font-medium font-mono">
-                                {{ number_format($order->subtotal, 3, ',', '.') }} {{ $order->currency_code }}
+                                {{ number_format($order->subtotal, 2, ',', '.') }} {{ $order->currency_code }}
                             </dd>
                         </div>
                         <div class="flex justify-between">
                             <dt class="text-gray-500 dark:text-gray-400">Versandkosten</dt>
                             <dd class="text-gray-900 dark:text-white font-medium font-mono">
-                                {{ number_format($order->shipping_cost, 3, ',', '.') }} {{ $order->currency_code }}
+                                {{ number_format($order->shipping_cost, 2, ',', '.') }} {{ $order->currency_code }}
                             </dd>
                         </div>
                         @if($order->insurance > 0)
                             <div class="flex justify-between">
                                 <dt class="text-gray-500 dark:text-gray-400">Versicherung</dt>
                                 <dd class="text-gray-900 dark:text-white font-medium font-mono">
-                                    {{ number_format($order->insurance, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->insurance, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
@@ -410,7 +409,7 @@
                             <div class="flex justify-between">
                                 <dt class="text-gray-500 dark:text-gray-400">Rabatt</dt>
                                 <dd class="text-red-600 dark:text-red-400 font-medium font-mono">
-                                    -{{ number_format($order->discount, 3, ',', '.') }} {{ $order->currency_code }}
+                                    -{{ number_format($order->discount, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
@@ -418,7 +417,7 @@
                             <div class="flex justify-between">
                                 <dt class="text-gray-500 dark:text-gray-400">Zusatzkosten 1</dt>
                                 <dd class="text-gray-900 dark:text-white font-medium font-mono">
-                                    {{ number_format($order->etc1, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->etc1, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
@@ -426,7 +425,7 @@
                             <div class="flex justify-between">
                                 <dt class="text-gray-500 dark:text-gray-400">Zusatzkosten 2</dt>
                                 <dd class="text-gray-900 dark:text-white font-medium font-mono">
-                                    {{ number_format($order->etc2, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->etc2, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
@@ -439,28 +438,28 @@
                                     @endif
                                 </dt>
                                 <dd class="text-gray-900 dark:text-white font-medium font-mono">
-                                    {{ number_format($order->vat_amount, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->vat_amount, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @elseif($order->tax > 0)
                             <div class="flex justify-between">
                                 <dt class="text-gray-500 dark:text-gray-400">Steuern</dt>
                                 <dd class="text-gray-900 dark:text-white font-medium font-mono">
-                                    {{ number_format($order->tax, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->tax, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
                         <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                             <dt class="font-semibold text-gray-900 dark:text-white">Zwischensumme</dt>
                             <dd class="font-semibold text-gray-900 dark:text-white font-mono">
-                                {{ number_format($order->grand_total, 3, ',', '.') }} {{ $order->currency_code }}
+                                {{ number_format($order->grand_total, 2, ',', '.') }} {{ $order->currency_code }}
                             </dd>
                         </div>
                         @if($order->credit > 0)
                             <div class="flex justify-between">
                                 <dt class="text-gray-500 dark:text-gray-400">Store Credit</dt>
                                 <dd class="text-red-600 dark:text-red-400 font-medium font-mono">
-                                    -{{ number_format($order->credit, 3, ',', '.') }} {{ $order->currency_code }}
+                                    -{{ number_format($order->credit, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
@@ -468,7 +467,7 @@
                             <div class="flex justify-between">
                                 <dt class="text-gray-500 dark:text-gray-400">Gutschein</dt>
                                 <dd class="text-red-600 dark:text-red-400 font-medium font-mono">
-                                    -{{ number_format($order->credit_coupon, 3, ',', '.') }} {{ $order->currency_code }}
+                                    -{{ number_format($order->credit_coupon, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
@@ -476,14 +475,14 @@
                             <div class="flex justify-between pt-3 mt-2 border-t-2 border-gray-300 dark:border-gray-600">
                                 <dt class="font-bold text-gray-900 dark:text-white text-base">Endbetrag</dt>
                                 <dd class="font-bold text-lg text-gray-900 dark:text-white font-mono">
-                                    {{ number_format($order->final_total, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->final_total, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @else
                             <div class="flex justify-between pt-3 mt-2 border-t-2 border-gray-300 dark:border-gray-600">
                                 <dt class="font-bold text-gray-900 dark:text-white text-base">Gesamtbetrag</dt>
                                 <dd class="font-bold text-lg text-gray-900 dark:text-white font-mono">
-                                    {{ number_format($order->grand_total, 3, ',', '.') }} {{ $order->currency_code }}
+                                    {{ number_format($order->grand_total, 2, ',', '.') }} {{ $order->currency_code }}
                                 </dd>
                             </div>
                         @endif
@@ -715,4 +714,6 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
 </x-layouts.app>

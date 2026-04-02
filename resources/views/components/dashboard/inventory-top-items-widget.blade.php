@@ -83,7 +83,7 @@
                         </div>
                         <div class="text-right flex-shrink-0 ml-4">
                             <p class="text-sm font-bold text-gray-900 dark:text-white">
-                                {{ number_format($item->quantity * $item->unit_price, 3) }}€
+                                {{ number_format($item->quantity * $item->unit_price, 2) }}€
                             </p>
                             <a href="{{ route('inventory.show', $item) }}"
                                class="text-xs text-blue-600 dark:text-blue-400 hover:underline">

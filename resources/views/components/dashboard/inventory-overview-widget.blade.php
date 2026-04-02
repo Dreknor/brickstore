@@ -60,7 +60,7 @@
                                 Gesamtwert
                             </p>
                             <p class="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">
-                                {{ number_format($totalValue, 3) }} €
+                                {{ number_format($totalValue, 2) }} €
                             </p>
                         </div>
                         <i class="fa-solid fa-euro-sign text-3xl text-green-500/30"></i>
