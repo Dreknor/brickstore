@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 
 // Schedule automatic BrickLink order synchronization - runs every 5 minutes
 // --direct: führt den Sync direkt aus (kein Queue-Umweg), besser für Shared Hosting
-Schedule::command('bricklink:sync-orders --days=2 --direct')
+Schedule::command('bricklink:sync-orders --days=20 --direct')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->onFailure(function () {
