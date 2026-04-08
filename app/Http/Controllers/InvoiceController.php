@@ -211,6 +211,20 @@ class InvoiceController extends Controller
     }
 
     /**
+     * Manually mark invoice as sent (e.g. when sent by hand, post, or external email)
+     */
+    public function markAsSent(Invoice $invoice)
+    {
+        Gate::authorize('update', $invoice);
+
+        $this->invoiceService->markAsSent($invoice);
+
+        ActivityLogger::info('invoice.marked_sent', "Rechnung {$invoice->invoice_number} manuell als versendet markiert", $invoice);
+
+        return redirect()->back()->with('success', 'Rechnung als versendet markiert');
+    }
+
+    /**
      * Reupload invoice to Nextcloud
      */
     public function reuploadToNextcloud(Invoice $invoice)

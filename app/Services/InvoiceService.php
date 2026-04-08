@@ -72,6 +72,8 @@ class InvoiceService
             'order_id' => $order->id,
             'invoice_number' => $invoiceNumber,
             'invoice_date' => now(),
+            'service_date' => $order->shipped_date ?? $order->order_date ?? now(),
+            'due_date' => $order->is_paid ? null : now()->addDays(14),
             'customer_name' => $order->shipping_name ?? $order->buyer_name,
             'customer_email' => $order->buyer_email,
             'customer_address1' => $order->shipping_address1,

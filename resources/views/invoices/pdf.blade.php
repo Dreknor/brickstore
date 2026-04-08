@@ -396,7 +396,13 @@
         </div>
 
         <!-- ── Delivery notice ── -->
-        <div class="delivery-note">Liefer- und Leistungsdatum entspricht dem Rechnungsdatum.</div>
+        <div class="delivery-note">
+            @if($invoice->service_date)
+                Leistungsdatum: {{ $invoice->service_date->format('d.m.Y') }}
+            @else
+                Liefer- und Leistungsdatum entspricht dem Rechnungsdatum.
+            @endif
+        </div>
 
         <!-- ── Items table ── -->
         <table class="items-table">
@@ -433,10 +439,12 @@
         <!-- ── Summary ── -->
         <div class="summary-area">
             <div class="summary-left">
-                <div class="small-biz-note">
-                    Gem&auml;&szlig; &sect;&nbsp;19 UStG wird keine Umsatzsteuer berechnet
-                    (Kleinunternehmerregelung). Es erfolgt kein Ausweis der Umsatzsteuer.
-                </div>
+                @if($invoice->is_small_business)
+                    <div class="small-biz-note">
+                        Gem&auml;&szlig; &sect;&nbsp;19 UStG wird keine Umsatzsteuer berechnet
+                        (Kleinunternehmerregelung). Es erfolgt kein Ausweis der Umsatzsteuer.
+                    </div>
+                @endif
                 <div class="thank-you">Vielen Dank f&uuml;r Ihre Bestellung!</div>
             </div>
             <div class="summary-right">
@@ -449,6 +457,16 @@
                         <td class="t-label">Versand &amp; Lieferung</td>
                         <td class="t-value">{{ number_format($invoice->shipping_cost, 2, ',', '.') }}&nbsp;&euro;</td>
                     </tr>
+                    @if(!$invoice->is_small_business && $invoice->tax_rate > 0)
+                        <tr>
+                            <td class="t-label">Nettobetrag</td>
+                            <td class="t-value">{{ number_format($invoice->subtotal + $invoice->shipping_cost, 2, ',', '.') }}&nbsp;&euro;</td>
+                        </tr>
+                        <tr>
+                            <td class="t-label">MwSt. ({{ number_format($invoice->tax_rate, 0) }}%)</td>
+                            <td class="t-value">{{ number_format($invoice->tax_amount, 2, ',', '.') }}&nbsp;&euro;</td>
+                        </tr>
+                    @endif
                     <tr class="total-row">
                         <td>Gesamtbetrag</td>
                         <td class="t-value">{{ number_format($invoice->total, 2, ',', '.') }}&nbsp;&euro;</td>

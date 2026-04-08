@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
+    public function __construct(protected BrickLinkService $brickLinkService) {}
+
     /**
      * Display a listing of the orders.
      */
@@ -136,8 +138,7 @@ class OrderController extends Controller
         Log::debug('Synchronizing BrickLink order', ['orderId' => $order->bricklink_order_id]);
 
         try {
-            $service = new BrickLinkService;
-            $orderData = $service->fetchOrder($order->store, $order->bricklink_order_id);
+            $orderData = $this->brickLinkService->fetchOrder($order->store, $order->bricklink_order_id);
 
             Log::debug('BrickLink order data', ['orderData' => $orderData]);
 
@@ -178,8 +179,7 @@ class OrderController extends Controller
         // Execute sync directly (synchronously) for immediate results
         // Manual sync should not use queue to give instant feedback to user
         try {
-            $service = new \App\Services\BrickLink\BrickLinkService;
-            $orders = $service->fetchOrders($store, '');
+            $orders = $this->brickLinkService->fetchOrders($store, '');
 
             Log::info('Manual order sync started', [
                 'store_id' => $store->id,
@@ -205,8 +205,8 @@ class OrderController extends Controller
 
                 try {
                     // Fetch complete order details
-                    $completeOrderData = $service->fetchOrder($store, $orderData['order_id']);
-                    $this->syncOrderData($store, $completeOrderData, $service);
+                    $completeOrderData = $this->brickLinkService->fetchOrder($store, $orderData['order_id']);
+                    $this->syncOrderData($store, $completeOrderData, $this->brickLinkService);
                     $synced++;
 
                     Log::debug("Synced order {$orderData['order_id']}", [
@@ -418,8 +418,7 @@ class OrderController extends Controller
 
         $validated = $request->validated();
 
-        $service = new BrickLinkService;
-        $updatedOrderData = $service->updateOrderStatus($order->store, $order->bricklink_order_id, $validated['status']);
+        $updatedOrderData = $this->brickLinkService->updateOrderStatus($order->store, $order->bricklink_order_id, $validated['status']);
 
         // Use the status returned from BrickLink to ensure synchronization
         $newStatus = $updatedOrderData['status'] ?? $validated['status'];
@@ -451,8 +450,6 @@ class OrderController extends Controller
         try {
             $validated = $request->validated();
 
-            $service = new BrickLinkService;
-
             // Prepare shipping data for BrickLink
             $shippingData = [
                 'tracking_no' => $validated['tracking_number'],
@@ -463,7 +460,7 @@ class OrderController extends Controller
             }
 
             // Update shipping info on BrickLink
-            $service->updateOrderShipping($order->store, $order->bricklink_order_id, $shippingData);
+            $this->brickLinkService->updateOrderShipping($order->store, $order->bricklink_order_id, $shippingData);
 
             // Update local order
             $updateData = [
@@ -499,10 +496,8 @@ class OrderController extends Controller
         try {
             $validated = $request->validated();
 
-            $service = new BrickLinkService;
-
             // Update status to Shipped
-            $service->updateOrderStatus($order->store, $order->bricklink_order_id, 'Shipped');
+            $this->brickLinkService->updateOrderStatus($order->store, $order->bricklink_order_id, 'Shipped');
 
             // Update shipping info if tracking number provided
             $shippingData = [
@@ -513,7 +508,7 @@ class OrderController extends Controller
                 $shippingData['tracking_link'] = $validated['tracking_link'];
             }
 
-            $service->updateOrderShipping($order->store, $order->bricklink_order_id, $shippingData);
+            $this->brickLinkService->updateOrderShipping($order->store, $order->bricklink_order_id, $shippingData);
 
             // Update local order
             $updateData = [

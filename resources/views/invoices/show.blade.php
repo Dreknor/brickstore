@@ -137,6 +137,15 @@
                             </form>
                         @endif
 
+                        @if($invoice->status === 'draft')
+                            <form action="{{ route('invoices.mark-sent', $invoice) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">
+                                    <i class="fa-solid fa-paper-plane"></i> Als versendet markieren
+                                </button>
+                            </form>
+                        @endif
+
                         <a href="{{ route('invoices.email-preview', $invoice) }}"
                            class="block w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center">
                             <i class="fa-solid fa-envelope"></i> E-Mail-Vorschau & Versand
