@@ -196,8 +196,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             const iframe = document.getElementById('email-preview-frame');
             if (iframe) {
-                // Assign via JS to avoid Blade double-escaping the srcdoc attribute.
-                // @json() JSON-encodes the string safely for use in JavaScript.
+            // Assign via JS to avoid Blade double-escaping the srcdoc attribute.
+            // @@json() JSON-encodes the string safely for use in JavaScript.
                 iframe.srcdoc = @json($emailHtml);
 
                 iframe.addEventListener('load', function() {
