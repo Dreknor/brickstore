@@ -75,21 +75,21 @@ class InvoiceController extends Controller
 
         // Check if invoice already exists
         if ($order->invoice) {
-            return redirect()->back()->with('error', 'Invoice already exists for this order');
+            return redirect()->back()->with('error', 'Für diese Bestellung existiert bereits eine Rechnung');
         }
 
         try {
             $invoice = $this->invoiceService->createInvoiceFromOrder($order);
             $this->invoiceService->savePDF($invoice);
 
-            ActivityLogger::info('invoice.created', "Invoice {$invoice->invoice_number} created for order {$order->bricklink_order_id}", $invoice);
+            ActivityLogger::info('invoice.created', "Rechnung {$invoice->invoice_number} erstellt für Bestellung {$order->bricklink_order_id}", $invoice);
 
             return redirect()->route('invoices.show', $invoice)
-                ->with('success', 'Invoice created successfully');
+                ->with('success', 'Rechnung erfolgreich erstellt');
         } catch (\Exception $e) {
-            ActivityLogger::error('invoice.create_failed', "Failed to create invoice for order {$order->bricklink_order_id}: {$e->getMessage()}", $order);
+            ActivityLogger::error('invoice.create_failed', "Rechnung für Bestellung {$order->bricklink_order_id} konnte nicht erstellt werden: {$e->getMessage()}", $order);
 
-            return redirect()->back()->with('error', 'Failed to create invoice: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Rechnung konnte nicht erstellt werden: '.$e->getMessage());
         }
     }
 
@@ -114,52 +114,87 @@ class InvoiceController extends Controller
     }
 
     /**
+     * Show email preview before sending
+     */
+    public function emailPreview(Invoice $invoice)
+    {
+        Gate::authorize('view', $invoice);
+
+        $invoice->load('store', 'order.items');
+
+        // Render the email as HTML for preview
+        $mailable = new \App\Mail\InvoiceMail($invoice);
+        $emailHtml = $mailable->render();
+
+        $store = $invoice->store;
+        $fromAddress = $store->smtp_from_address ?? $store->user->email;
+        $fromName = $store->smtp_from_name ?? $store->company_name;
+        $subject = 'Ihre Rechnung ' . $invoice->invoice_number;
+
+        return view('invoices.email-preview', compact(
+            'invoice',
+            'emailHtml',
+            'fromAddress',
+            'fromName',
+            'subject'
+        ));
+    }
+
+    /**
      * Send invoice via email
      */
     public function sendEmail(Invoice $invoice)
     {
         Gate::authorize('update', $invoice);
-        // 1. Definiere einen eindeutigen Schlüssel für diesen dynamischen Mailer
-        // (z.B. basierend auf der User-ID oder einfach 'dynamic_smtp')
-        $mailerName = 'dynamic_smtp';
 
-        $smtpSettings = [
-            'host' => $invoice->store->smtp_host,
-            'port' => $invoice->store->smtp_port,
-            'encryption' => $invoice->store->smtp_encryption ?? 'tls', // 'tls' oder 'ssl'
-            'username' => $invoice->store->smtp_username,
-            'password' => $invoice->store->smtp_password,
-            'from_address' => $invoice->store->smtp_from_address,
-            'from_name' => $invoice->store->smtp_from_name,
-        ];
-
-        // 2. Setze die Konfiguration zur Laufzeit
-        Config::set("mail.mailers.{$mailerName}", [
-            'transport' => 'smtp',
-            'host' => $smtpSettings['host'],
-            'port' => $smtpSettings['port'],
-            'encryption' => $smtpSettings['encryption'], // 'tls' oder 'ssl'
-            'username' => $smtpSettings['username'],
-            'password' => $smtpSettings['password'],
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN'),
-        ]);
-
-        // Optional: Auch die "From"-Adresse dynamisch setzen (falls nötig)
-        $fromAddress = $smtpSettings['from_address'] ?? config('mail.from.address');
-        $fromName = $smtpSettings['from_name'] ?? config('mail.from.name');
-
-        // 3. Wähle explizit diesen Mailer aus und versende
-        Mail::mailer($mailerName)
-            ->to($invoice->customer_email)
-            ->send((new \App\Mail\InvoiceMail($invoice))->from($fromAddress, $fromName));
         try {
+            $mailerName = 'dynamic_smtp';
 
-            Log::debug("Queuing email for invoice {$invoice->invoice_number} to {$invoice->customer_email}");
+            $smtpSettings = [
+                'host' => $invoice->store->smtp_host,
+                'port' => $invoice->store->smtp_port,
+                'encryption' => $invoice->store->smtp_encryption ?? 'tls',
+                'username' => $invoice->store->smtp_username,
+                'password' => $invoice->store->smtp_password,
+                'from_address' => $invoice->store->smtp_from_address,
+                'from_name' => $invoice->store->smtp_from_name,
+            ];
 
-            return redirect()->back()->with('success', 'Invoice email is being sent');
+            Config::set("mail.mailers.{$mailerName}", [
+                'transport' => 'smtp',
+                'host' => $smtpSettings['host'],
+                'port' => $smtpSettings['port'],
+                'encryption' => $smtpSettings['encryption'],
+                'username' => $smtpSettings['username'],
+                'password' => $smtpSettings['password'],
+                'timeout' => null,
+                'local_domain' => parse_url(config('app.url', 'http://localhost'), PHP_URL_HOST),
+            ]);
+
+            $fromAddress = $smtpSettings['from_address'] ?? config('mail.from.address');
+            $fromName = $smtpSettings['from_name'] ?? config('mail.from.name');
+
+            Log::debug("Sende Rechnungs-E-Mail {$invoice->invoice_number} an {$invoice->customer_email}");
+
+            Mail::mailer($mailerName)
+                ->to($invoice->customer_email)
+                ->send((new \App\Mail\InvoiceMail($invoice))->from($fromAddress, $fromName));
+
+            // Rechnung als versendet markieren
+            $this->invoiceService->markAsSent($invoice);
+
+            ActivityLogger::info('invoice.email_sent', "Rechnung {$invoice->invoice_number} per E-Mail versendet an {$invoice->customer_email}", $invoice);
+
+            return redirect()->back()->with('success', 'Rechnung wurde erfolgreich per E-Mail versendet');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to send invoice: '.$e->getMessage());
+            Log::error("E-Mail-Versand fehlgeschlagen für Rechnung {$invoice->invoice_number}", [
+                'error' => $e->getMessage(),
+                'customer_email' => $invoice->customer_email,
+            ]);
+
+            ActivityLogger::error('invoice.email_failed', "E-Mail-Versand fehlgeschlagen für Rechnung {$invoice->invoice_number}: {$e->getMessage()}", $invoice);
+
+            return redirect()->back()->with('error', 'E-Mail-Versand fehlgeschlagen: '.$e->getMessage());
         }
     }
 
@@ -172,7 +207,7 @@ class InvoiceController extends Controller
 
         $this->invoiceService->markAsPaid($invoice);
 
-        return redirect()->back()->with('success', 'Invoice marked as paid');
+        return redirect()->back()->with('success', 'Rechnung als bezahlt markiert');
     }
 
     /**
@@ -183,19 +218,19 @@ class InvoiceController extends Controller
         Gate::authorize('update', $invoice);
 
         if (! $invoice->store->nextcloud_url) {
-            return redirect()->back()->with('error', 'Nextcloud is not configured for this store');
+            return redirect()->back()->with('error', 'Nextcloud ist für diesen Store nicht konfiguriert');
         }
 
         try {
             $this->invoiceService->reuploadToNextcloud($invoice);
 
-            ActivityLogger::info('invoice.nextcloud_reupload', "Invoice {$invoice->invoice_number} queued for Nextcloud reupload", $invoice);
+            ActivityLogger::info('invoice.nextcloud_reupload', "Rechnung {$invoice->invoice_number} für Nextcloud-Upload eingereiht", $invoice);
 
-            return redirect()->back()->with('success', 'Invoice reupload to Nextcloud has been queued');
+            return redirect()->back()->with('success', 'Rechnung wird erneut zu Nextcloud hochgeladen');
         } catch (\Exception $e) {
-            ActivityLogger::error('invoice.nextcloud_reupload_failed', "Failed to reupload invoice {$invoice->invoice_number}: {$e->getMessage()}", $invoice);
+            ActivityLogger::error('invoice.nextcloud_reupload_failed', "Nextcloud-Upload fehlgeschlagen für Rechnung {$invoice->invoice_number}: {$e->getMessage()}", $invoice);
 
-            return redirect()->back()->with('error', 'Failed to reupload invoice: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Nextcloud-Upload fehlgeschlagen: '.$e->getMessage());
         }
     }
 
@@ -219,14 +254,14 @@ class InvoiceController extends Controller
         try {
             $this->invoiceService->updateInvoiceAndRegeneratePDF($invoice, $validated);
 
-            ActivityLogger::info('invoice.updated', "Invoice {$invoice->invoice_number} updated and regenerated", $invoice);
+            ActivityLogger::info('invoice.updated', "Rechnung {$invoice->invoice_number} aktualisiert und neu generiert", $invoice);
 
             return redirect()->route('invoices.show', $invoice)
-                ->with('success', 'Invoice updated and PDF regenerated. Nextcloud upload has been queued.');
+                ->with('success', 'Rechnung aktualisiert und PDF neu generiert. Nextcloud-Upload wurde eingereiht.');
         } catch (\Exception $e) {
-            ActivityLogger::error('invoice.update_failed', "Failed to update invoice {$invoice->invoice_number}: {$e->getMessage()}", $invoice);
+            ActivityLogger::error('invoice.update_failed', "Aktualisierung der Rechnung {$invoice->invoice_number} fehlgeschlagen: {$e->getMessage()}", $invoice);
 
-            return redirect()->back()->with('error', 'Failed to update invoice: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Rechnungsaktualisierung fehlgeschlagen: '.$e->getMessage());
         }
     }
 }

@@ -657,7 +657,7 @@
 
                         @endforeach
                         <!-- Feedback senden (wenn noch nicht vorhanden) -->
-                        @if(! $order->status === 'Shipped')
+                        @if($order->status === 'Shipped' && !$order->feedbackToBuyer)
                             <div>
                                 <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                                     <i class="fa-solid fa-paper-plane text-indigo-500"></i>

@@ -72,6 +72,7 @@ Route::middleware(['auth', 'store.setup'])->group(function () {
     Route::get('invoices/{invoice}/pdf', [App\Http\Controllers\InvoiceController::class, 'downloadPDF'])->name('invoices.download-pdf');
     Route::get('invoices/{invoice}/stream', [App\Http\Controllers\InvoiceController::class, 'streamPDF'])->name('invoices.stream-pdf');
     Route::post('invoices/{invoice}/send', [App\Http\Controllers\InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
+    Route::get('invoices/{invoice}/email-preview', [App\Http\Controllers\InvoiceController::class, 'emailPreview'])->name('invoices.email-preview');
     Route::post('invoices/{invoice}/mark-paid', [App\Http\Controllers\InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
     Route::put('invoices/{invoice}', [App\Http\Controllers\InvoiceController::class, 'update'])->name('invoices.update');
     Route::post('invoices/{invoice}/reupload-nextcloud', [App\Http\Controllers\InvoiceController::class, 'reuploadToNextcloud'])->name('invoices.reupload-nextcloud');

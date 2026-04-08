@@ -35,16 +35,16 @@ class Feedback extends Model
 
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class, 'order_id' ,'bricklink_order_id');
+        return $this->belongsTo(Order::class);
     }
 
 
     public function getRatingLabel(): string
     {
         return match ($this->rating) {
-            0 => 'Praise',
+            0 => 'Lob',
             1 => 'Neutral',
-            2 => 'Complaint',
+            2 => 'Beschwerde',
             default => 'Unbekannt',
         };
     }

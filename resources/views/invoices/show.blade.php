@@ -137,12 +137,17 @@
                             </form>
                         @endif
 
-                        <form action="{{ route('invoices.send-email', $invoice) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                                <i class="fa-solid fa-envelope"></i> Per E-Mail senden
-                            </button>
-                        </form>
+                        <a href="{{ route('invoices.email-preview', $invoice) }}"
+                           class="block w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center">
+                            <i class="fa-solid fa-envelope"></i> E-Mail-Vorschau & Versand
+                        </a>
+
+                        @if($invoice->sent_via_email)
+                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
+                                <i class="fa-solid fa-check-circle text-green-500"></i>
+                                Versendet am {{ $invoice->email_sent_at?->format('d.m.Y H:i') }}
+                            </p>
+                        @endif
 
                         <a href="{{ route('orders.show', $invoice->order) }}"
                            class="block w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-center">

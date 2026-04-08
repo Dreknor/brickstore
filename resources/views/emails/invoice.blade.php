@@ -3,7 +3,7 @@
 
 Sehr geehrte(r) {{ $invoice->customer_name }},
 
-Vielen Dank für @if($invoice->service_date) für Ihre Bestellung vom {{ $invoice->service_date->format('d.m.Y') }} @endif bei {{ $store->company_name }}.<br>
+Vielen Dank @if($invoice->service_date)für Ihre Bestellung vom {{ $invoice->service_date->format('d.m.Y') }} @else für Ihre Bestellung @endif bei {{ $store->company_name }}.<br>
 Anbei erhalten Sie Ihre Rechnung. Die Artikel Ihrer Bestellung sind in der Rechnung aufgeführt.
 
 Die Bestellung befindet sich bereits auf dem Weg zu Ihnen und sollte in Kürze eintreffen. Viel Freude mit Ihren neuen Artikeln!
