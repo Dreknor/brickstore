@@ -68,8 +68,7 @@
                         <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-white">
                             <iframe id="email-preview-frame"
                                     class="w-full border-0"
-                                    style="min-height: 500px;"
-                                    srcdoc="{{ htmlspecialchars($emailHtml) }}">
+                                    style="min-height: 500px;">
                             </iframe>
                         </div>
                     </div>
@@ -194,10 +193,13 @@
     </div>
 
     <script>
-        // Auto-resize iframe to fit content
         document.addEventListener('DOMContentLoaded', function() {
             const iframe = document.getElementById('email-preview-frame');
             if (iframe) {
+                // Assign via JS to avoid Blade double-escaping the srcdoc attribute.
+                // @json() JSON-encodes the string safely for use in JavaScript.
+                iframe.srcdoc = @json($emailHtml);
+
                 iframe.addEventListener('load', function() {
                     try {
                         const height = iframe.contentDocument.documentElement.scrollHeight;
