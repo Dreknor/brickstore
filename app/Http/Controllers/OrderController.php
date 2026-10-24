@@ -2,14 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SyncInventoryItemToBrickLinkJob;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Inventory;
 use App\Services\ActivityLogger;
 use App\Services\BrickLink\BrickLinkService;
+use App\Services\InvoiceService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -72,6 +80,162 @@ class OrderController extends Controller
         $order->load('items', 'invoice', 'feedback');
 
         return view('orders.show', compact('order'));
+    }
+
+    public function searchInventory(Request $request, Order $order): JsonResponse
+    {
+        Gate::authorize('view', $order);
+
+        $validated = $request->validate([
+            'search' => 'required|string|min:2|max:100',
+        ]);
+
+        $search = $validated['search'];
+        $items = Inventory::query()
+            ->where('store_id', $order->store_id)
+            ->where('quantity', '>', 0)
+            ->where('is_retain', false)
+            ->where(function ($query) use ($search) {
+                $query->where('item_no', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('color_name', 'like', "%{$search}%");
+            })
+            ->orderBy('item_no')
+            ->limit(20)
+            ->get(['id', 'item_no', 'item_type', 'description', 'color_name', 'new_or_used', 'quantity', 'unit_price'])
+            ->map(fn (Inventory $item) => [
+                'id' => $item->id,
+                'item_no' => $item->item_no,
+                'item_type' => $item->item_type,
+                'item_name' => $item->description ?: $item->item_no,
+                'color_name' => $item->color_name,
+                'condition' => $item->new_or_used,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
+            ]);
+
+        return response()->json($items);
+    }
+
+    public function addItem(Request $request, Order $order, InvoiceService $invoiceService): RedirectResponse
+    {
+        Gate::authorize('update', $order);
+
+        $validated = $request->validate([
+            'inventory_id' => 'required|integer',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
+        ]);
+
+        [$item, $invoice] = DB::transaction(function () use ($order, $validated) {
+            Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+
+            $inventory = Inventory::where('store_id', $order->store_id)
+                ->lockForUpdate()
+                ->whereKey($validated['inventory_id'])
+                ->first();
+
+            if (! $inventory) {
+                throw ValidationException::withMessages([
+                    'inventory_id' => 'Der Inventar-Artikel wurde nicht gefunden.',
+                ]);
+            }
+
+            if ($inventory->is_retain) {
+                throw ValidationException::withMessages([
+                    'inventory_id' => 'Dieser Artikel ist im Inventar als zurückzuhalten markiert.',
+                ]);
+            }
+
+            if ($validated['quantity'] > $inventory->quantity) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Es sind nur {$inventory->quantity} Stück auf Lager.",
+                ]);
+            }
+
+            $unitPrice = round((float) $validated['unit_price'], 2);
+            $totalPrice = round($unitPrice * $validated['quantity'], 2);
+
+            $item = $order->items()->create([
+                'inventory_id' => $inventory->id,
+                'is_manual' => true,
+                'item_type' => $inventory->item_type,
+                'item_number' => $inventory->item_no,
+                'item_name' => $inventory->description ?: $inventory->item_no,
+                'color_id' => $inventory->color_id,
+                'color_name' => $inventory->color_name,
+                'quantity' => $validated['quantity'],
+                'unit_price' => $unitPrice,
+                'total_price' => $totalPrice,
+                'condition' => $inventory->new_or_used,
+                'completeness' => $inventory->completeness,
+                'description' => $inventory->description,
+                'remarks' => $inventory->remarks,
+                'image_url' => $inventory->image_url,
+                'store_location' => $inventory->stock_room_id,
+            ]);
+
+            $inventory->decrement('quantity', $validated['quantity']);
+
+            $invoice = $order->invoice()->lockForUpdate()->first();
+            if ($invoice) {
+                $additionalTax = $invoice->is_small_business
+                    ? 0
+                    : round($totalPrice * (float) $invoice->tax_rate / 100, 2);
+
+                $invoice->update([
+                    'subtotal' => (float) $invoice->subtotal + $totalPrice,
+                    'tax_amount' => (float) $invoice->tax_amount + $additionalTax,
+                    'total' => (float) $invoice->total + $totalPrice + $additionalTax,
+                ]);
+            }
+
+            return [$item, $invoice];
+        });
+
+        $bricklinkSyncQueued = false;
+        if ($item->inventory_id) {
+            SyncInventoryItemToBrickLinkJob::dispatch($item->inventory_id);
+            $bricklinkSyncQueued = true;
+        }
+
+        if ($invoice) {
+            try {
+                $invoiceService->updateInvoiceAndRegeneratePDF($invoice, []);
+            } catch (\Exception $e) {
+                Log::error('Could not regenerate invoice after adding order item', [
+                    'order_id' => $order->id,
+                    'invoice_id' => $invoice->id,
+                    'order_item_id' => $item->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return redirect()->back()->with('error', 'Der Artikel wurde ergänzt und der Bestand angepasst, aber die Rechnung konnte nicht neu erstellt werden.');
+            }
+        }
+
+        ActivityLogger::info(
+            'order.item.added',
+            "Zusätzlicher Artikel {$item->item_number} zur Bestellung {$order->bricklink_order_id} hinzugefügt",
+            $order,
+            [
+                'order_item_id' => $item->id,
+                'inventory_id' => $item->inventory_id,
+                'quantity' => $item->quantity,
+                'bricklink_sync_queued' => $bricklinkSyncQueued,
+            ]
+        );
+
+        $syncMessage = $bricklinkSyncQueued
+            ? ' Die aktualisierte Menge wird mit BrickLink synchronisiert.'
+            : ' Für diesen Artikel ist keine BrickLink-Inventar-ID hinterlegt; die Änderung gilt nur lokal.';
+
+        return redirect()->back()->with(
+            'success',
+            $invoice
+                ? 'Artikel ergänzt, Bestand reduziert und Rechnung aktualisiert.'.$syncMessage
+                : 'Artikel ergänzt und Bestand reduziert. Die Rechnung berücksichtigt den Artikel bei der Erstellung.'.$syncMessage
+        );
     }
 
     /**
@@ -349,7 +513,7 @@ class OrderController extends Controller
             $items = $service->fetchOrderItems($order->store, $bricklinkOrderId);
 
             // Delete existing items
-            $order->items()->delete();
+            $order->items()->where('is_manual', false)->delete();
 
             // Create new items
             foreach ($items as $itemData) {

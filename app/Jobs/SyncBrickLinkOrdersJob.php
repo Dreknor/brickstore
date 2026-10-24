@@ -235,7 +235,7 @@ class SyncBrickLinkOrdersJob implements ShouldQueue
             $items = $service->fetchOrderItems($this->store, $bricklinkOrderId);
 
             // Delete existing items
-            $order->items()->delete();
+            $order->items()->where('is_manual', false)->delete();
 
             // Create new items
             foreach ($items as $itemData) {

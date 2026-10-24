@@ -15,6 +15,8 @@ class OrderItem extends Model
 
     protected $fillable = [
         'order_id',
+        'inventory_id',
+        'is_manual',
         'item_type',
         'item_number',
         'item_name',
@@ -37,6 +39,7 @@ class OrderItem extends Model
     {
         return [
             'quantity' => 'integer',
+            'is_manual' => 'boolean',
             'unit_price' => 'decimal:3',
             'total_price' => 'decimal:3',
             'is_packed' => 'boolean',
@@ -44,6 +47,7 @@ class OrderItem extends Model
         ];
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

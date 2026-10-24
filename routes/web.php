@@ -41,6 +41,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'store.setup'])->group(function () {
     // Orders
     Route::resource('orders', App\Http\Controllers\OrderController::class)->only(['index', 'show']);
+    Route::get('orders/{order}/inventory-search', [App\Http\Controllers\OrderController::class, 'searchInventory'])->name('orders.inventory-search');
+    Route::post('orders/{order}/items', [App\Http\Controllers\OrderController::class, 'addItem'])->name('orders.items.store');
     Route::get('orders/{order}/pack', [App\Http\Controllers\OrderController::class, 'pack'])->name('orders.pack');
     Route::post('orders/{order}/pack-item', [App\Http\Controllers\OrderController::class, 'packItem'])->name('orders.pack-item');
     Route::post('orders/{order}/unpack-item', [App\Http\Controllers\OrderController::class, 'unpackItem'])->name('orders.unpack-item');

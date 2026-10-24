@@ -7,7 +7,10 @@ use App\Services\InvoiceService;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    $this->store = Store::factory()->create(['user_id' => $this->user->id]);
+    $this->store = Store::factory()->create([
+        'user_id' => $this->user->id,
+        'is_small_business' => false,
+    ]);
 });
 
 test('invoice is created from order with shipping_name as customer name', function () {

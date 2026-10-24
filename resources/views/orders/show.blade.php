@@ -254,6 +254,9 @@
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-white max-w-xs truncate">
                                             {{ $item->item_name }}
+                                            @if($item->is_manual)
+                                                <span class="ml-1 px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">Nachträglich</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                                             {{ $item->color_name ?? '-' }}
@@ -275,6 +278,55 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        <i class="fa-solid fa-plus mr-2 text-green-600"></i> Zusätzliche Teile hinzufügen
+                    </h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Wählen Sie Teile aus Ihrem Inventar. Der Bestand wird reduziert
+                        @if($order->invoice)
+                            und die Rechnungssumme neu berechnet.
+                        @else
+                            und bei der Rechnungserstellung berücksichtigt.
+                        @endif
+                    </p>
+                    <form action="{{ route('orders.items.store', $order) }}" method="POST" class="space-y-4" id="add-order-item-form">
+                        @csrf
+                        <div>
+                            <label for="inventory-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Inventar durchsuchen</label>
+                            <input type="search" id="inventory-search" autocomplete="off" placeholder="Artikelnummer, Beschreibung oder Farbe"
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            <div id="inventory-search-results" class="mt-2 space-y-1" role="listbox"></div>
+                            <input type="hidden" name="inventory_id" id="inventory_id" value="{{ old('inventory_id') }}">
+                            @error('inventory_id')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div id="selected-inventory-item" class="hidden rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-900 dark:text-blue-100"></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="added-quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Menge</label>
+                                <input type="number" id="added-quantity" name="quantity" min="1" value="{{ old('quantity', 1) }}" required
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                @error('quantity')
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="added-unit-price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Einzelpreis ({{ $order->currency_code }})</label>
+                                <input type="number" id="added-unit-price" name="unit_price" min="0" step="0.01" value="{{ old('unit_price') }}" required
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                @error('unit_price')
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            <i class="fa-solid fa-plus mr-1"></i> Teil zur Bestellung hinzufügen
+                        </button>
+                    </form>
                 </div>
 
                 <!-- Zeitstempel & Status-Historie -->
@@ -483,6 +535,14 @@
                                 <dt class="font-bold text-gray-900 dark:text-white text-base">Gesamtbetrag</dt>
                                 <dd class="font-bold text-lg text-gray-900 dark:text-white font-mono">
                                     {{ number_format($order->grand_total, 2, ',', '.') }} {{ $order->currency_code }}
+                                </dd>
+                            </div>
+                        @endif
+                        @if($order->invoice)
+                            <div class="flex justify-between pt-3 mt-2 border-t-2 border-green-300 dark:border-green-700">
+                                <dt class="font-bold text-green-800 dark:text-green-300">Rechnungsbetrag</dt>
+                                <dd class="font-bold text-lg text-green-800 dark:text-green-300 font-mono">
+                                    {{ number_format($order->invoice->total, 2, ',', '.') }} {{ $order->invoice->currency }}
                                 </dd>
                             </div>
                         @endif
@@ -716,4 +776,82 @@
         </div>
     </div>
 </div>
+@push('scripts')
+    <script>
+        (() => {
+            const searchInput = document.getElementById('inventory-search');
+            const results = document.getElementById('inventory-search-results');
+            const inventoryId = document.getElementById('inventory_id');
+            const selectedItem = document.getElementById('selected-inventory-item');
+            const quantityInput = document.getElementById('added-quantity');
+            const unitPriceInput = document.getElementById('added-unit-price');
+            const searchUrl = @json(route('orders.inventory-search', $order));
+            let debounce;
+
+            if (!searchInput) {
+                return;
+            }
+
+            const clearSelection = () => {
+                inventoryId.value = '';
+                selectedItem.classList.add('hidden');
+                selectedItem.textContent = '';
+            };
+
+            const showResults = (items) => {
+                results.replaceChildren();
+                if (items.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.className = 'text-sm text-gray-500 dark:text-gray-400';
+                    empty.textContent = 'Keine verfügbaren Inventar-Artikel gefunden.';
+                    results.append(empty);
+                    return;
+                }
+
+                items.forEach((item) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'block w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700';
+                    button.textContent = `${item.item_no} · ${item.item_name}${item.color_name ? ` · ${item.color_name}` : ''} · ${item.condition === 'N' ? 'Neu' : 'Gebraucht'} · Lager: ${item.quantity} · ${Number(item.unit_price).toFixed(2)} {{ $order->currency_code }}`;
+                    button.addEventListener('click', () => {
+                        inventoryId.value = item.id;
+                        quantityInput.max = item.quantity;
+                        quantityInput.value = Math.min(Number(quantityInput.value) || 1, item.quantity);
+                        unitPriceInput.value = Number(item.unit_price).toFixed(2);
+                        selectedItem.textContent = `${item.item_name} (${item.item_no}) · ${item.color_name || 'Ohne Farbe'} · ${item.quantity} Stück verfügbar`;
+                        selectedItem.classList.remove('hidden');
+                        results.replaceChildren();
+                        searchInput.value = `${item.item_no} · ${item.item_name}`;
+                    });
+                    results.append(button);
+                });
+            };
+
+            searchInput.addEventListener('input', () => {
+                clearSelection();
+                clearTimeout(debounce);
+                const search = searchInput.value.trim();
+                if (search.length < 2) {
+                    results.replaceChildren();
+                    return;
+                }
+
+                debounce = setTimeout(async () => {
+                    results.textContent = 'Suche läuft …';
+                    try {
+                        const response = await fetch(`${searchUrl}?search=${encodeURIComponent(search)}`, {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        if (!response.ok) {
+                            throw new Error('Inventar-Suche fehlgeschlagen.');
+                        }
+                        showResults(await response.json());
+                    } catch (error) {
+                        results.textContent = error.message;
+                    }
+                }, 250);
+            });
+        })();
+    </script>
+@endpush
 </x-layouts.app>

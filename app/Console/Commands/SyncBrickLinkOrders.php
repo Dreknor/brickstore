@@ -255,7 +255,7 @@ class SyncBrickLinkOrders extends Command
             $items = $service->fetchOrderItems($order->store, $bricklinkOrderId);
 
             // Delete existing items
-            $order->items()->delete();
+            $order->items()->where('is_manual', false)->delete();
 
             // Create new items
             foreach ($items as $itemData) {

@@ -48,7 +48,9 @@ class InvoiceService
         $invoiceNumber = $this->generateInvoiceNumber($store);
 
         // Use values from BrickLink order
-        $subtotal = $order->subtotal ?? 0;
+        $additionalItemsTotal = $order->items()->where('is_manual', true)->sum('total_price');
+        $baseSubtotal = $order->subtotal ?? 0;
+        $subtotal = $baseSubtotal + $additionalItemsTotal;
         $shippingCost = $order->shipping_cost ?? 0;
 
         // Use VAT if available, otherwise fall back to tax
@@ -59,13 +61,20 @@ class InvoiceService
         if ($store->is_small_business) {
             $taxRate = 0;
             $taxAmount = 0;
-        } elseif ($taxRate == 0 && $taxAmount > 0 && ($subtotal + $shippingCost) > 0) {
+        } elseif ($taxRate == 0 && $taxAmount > 0 && ($baseSubtotal + $shippingCost) > 0) {
             // Calculate tax rate from tax amount
-            $taxRate = round(($taxAmount / ($subtotal + $shippingCost)) * 100, 2);
+            $taxRate = round(($taxAmount / ($baseSubtotal + $shippingCost)) * 100, 2);
         }
 
+        $additionalTax = $store->is_small_business ? 0 : round($additionalItemsTotal * $taxRate / 100, 2);
+        $taxAmount += $additionalTax;
+
         // Use final_total if available, otherwise grand_total
-        $total = $order->final_total > 0 ? $order->final_total : ($order->grand_total ?? ($subtotal + $shippingCost + $taxAmount));
+        $baseTaxAmount = $taxAmount - $additionalTax;
+        $baseTotal = $order->final_total > 0
+            ? $order->final_total
+            : ($order->grand_total ?? ($baseSubtotal + $shippingCost + $baseTaxAmount));
+        $total = $baseTotal + $additionalItemsTotal + $additionalTax;
 
         return Invoice::create([
             'store_id' => $store->id,

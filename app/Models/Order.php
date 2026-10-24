@@ -117,16 +117,19 @@ class Order extends Model
         ];
     }
 
+    /** @return BelongsTo<Store, $this> */
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
     }
 
+    /** @return HasMany<OrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
+    /** @return HasOne<Invoice, $this> */
     public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class);

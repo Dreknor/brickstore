@@ -426,6 +426,9 @@
                             <span class="badge {{ $item->condition === 'N' ? 'badge-new' : 'badge-used' }}">
                                 {{ $item->condition === 'N' ? 'Neu' : 'Gebraucht' }}
                             </span>
+                            @if($item->is_manual)
+                                &nbsp;&middot;&nbsp;Nachträglich ergänzt
+                            @endif
                         </div>
                     </td>
                     <td class="text-center">{{ $item->quantity }}</td>
@@ -510,4 +513,3 @@
 
 </body>
 </html>
-
