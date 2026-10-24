@@ -22,6 +22,7 @@ test('invoice pdf view can be rendered', function () {
         'store' => $store,
         'order' => $order,
         'items' => $order->items,
+        'additionalItems' => collect(),
     ]);
 
     $html = $view->render();
@@ -52,6 +53,7 @@ test('invoice pdf shows items correctly', function () {
         'store' => $store,
         'order' => $order,
         'items' => $order->items,
+        'additionalItems' => collect(),
     ]);
 
     $html = $view->render();
@@ -59,4 +61,3 @@ test('invoice pdf shows items correctly', function () {
     expect($html)->toContain('Test Brick Item');
     expect($html)->toContain('Neu');
 });
-

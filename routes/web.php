@@ -78,6 +78,8 @@ Route::middleware(['auth', 'store.setup'])->group(function () {
     Route::post('invoices/{invoice}/mark-paid', [App\Http\Controllers\InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
     Route::post('invoices/{invoice}/mark-sent', [App\Http\Controllers\InvoiceController::class, 'markAsSent'])->name('invoices.mark-sent');
     Route::put('invoices/{invoice}', [App\Http\Controllers\InvoiceController::class, 'update'])->name('invoices.update');
+    Route::post('invoices/{invoice}/items', [App\Http\Controllers\InvoiceController::class, 'addItem'])->name('invoices.items.store');
+    Route::delete('invoices/{invoice}/items/{item}', [App\Http\Controllers\InvoiceController::class, 'removeItem'])->name('invoices.items.destroy');
     Route::post('invoices/{invoice}/reupload-nextcloud', [App\Http\Controllers\InvoiceController::class, 'reuploadToNextcloud'])->name('invoices.reupload-nextcloud');
 
     // Brickognize - LEGO Teil-Identifikation

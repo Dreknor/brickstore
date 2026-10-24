@@ -286,13 +286,25 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
-                                    <span class="text-sm text-gray-900 dark:text-white">
-                                        {{ number_format($inventory->unit_price, 3) }} €
-                                    </span>
+                                    @if($inventory->sale_rate > 0)
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400 line-through">
+                                            {{ number_format($inventory->unit_price, 2, ',', '.') }} €
+                                        </span>
+                                        <span class="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                                            {{ number_format($inventory->effectiveUnitPrice(), 2, ',', '.') }} €
+                                        </span>
+                                        <span class="block text-xs text-orange-600 dark:text-orange-400">
+                                            {{ number_format($inventory->sale_rate, 0) }}% Rabatt
+                                        </span>
+                                    @else
+                                        <span class="text-sm text-gray-900 dark:text-white">
+                                            {{ number_format($inventory->unit_price, 2, ',', '.') }} €
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white">
-                                        {{ number_format($inventory->quantity * $inventory->unit_price, 3) }} €
+                                        {{ number_format($inventory->quantity * $inventory->effectiveUnitPrice(), 2, ',', '.') }} €
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -335,4 +347,3 @@
     </div>
 </div>
 </x-layouts.app>
-

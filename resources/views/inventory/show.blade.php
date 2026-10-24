@@ -485,11 +485,17 @@
 
                     <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
                         <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                            Stückpreis
+                            Verkaufspreis je Stück
                         </label>
                         <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                            {{ number_format($inventory->unit_price, 3) }} €
+                            {{ number_format($inventory->effectiveUnitPrice(), 2, ',', '.') }} €
                         </p>
+                        @if($inventory->sale_rate > 0)
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Listenpreis: <span class="line-through">{{ number_format($inventory->unit_price, 2, ',', '.') }} €</span>
+                                · {{ number_format($inventory->sale_rate, 0) }}% Rabatt
+                            </p>
+                        @endif
                     </div>
 
                     <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -497,7 +503,7 @@
                             Gesamtwert
                         </label>
                         <p class="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {{ number_format($inventory->quantity * $inventory->unit_price, 3) }} €
+                            {{ number_format($inventory->quantity * $inventory->effectiveUnitPrice(), 2, ',', '.') }} €
                         </p>
                     </div>
                     @if($inventory->my_cost > 0 and $inventory->my_cost != '0.00')
@@ -554,4 +560,3 @@
     </div>
     </div>
 </x-layouts.app>
-

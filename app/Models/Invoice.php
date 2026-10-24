@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
@@ -28,6 +29,7 @@ class Invoice extends Model
         'customer_postal_code',
         'customer_country',
         'subtotal',
+        'discount',
         'shipping_cost',
         'tax_rate',
         'tax_amount',
@@ -60,6 +62,7 @@ class Invoice extends Model
             'sent_via_email' => 'boolean',
             'uploaded_to_nextcloud' => 'boolean',
             'subtotal' => 'decimal:2',
+            'discount' => 'decimal:2',
             'shipping_cost' => 'decimal:2',
             'tax_rate' => 'decimal:2',
             'tax_amount' => 'decimal:2',
@@ -77,6 +80,12 @@ class Invoice extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /** @return HasMany<InvoiceItem, $this> */
+    public function items(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class);
     }
 
     public function scopeDraft($query)

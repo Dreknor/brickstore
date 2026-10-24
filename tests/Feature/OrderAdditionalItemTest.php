@@ -36,6 +36,7 @@ beforeEach(function () {
         'new_or_used' => 'N',
         'quantity' => 5,
         'unit_price' => 2,
+        'sale_rate' => null,
         'is_retain' => false,
         'is_stock_room' => false,
     ]);
@@ -165,4 +166,19 @@ it('shows the add-item form and only returns available, non-retained store inven
         ->assertOk()
         ->assertJsonCount(1)
         ->assertJsonFragment(['id' => $this->inventory->id]);
+});
+
+it('returns the discounted inventory price when adding an item to an order', function () {
+    $this->inventory->update(['sale_rate' => 10]);
+
+    $this->actingAs($this->user)
+        ->getJson(route('orders.inventory-search', [
+            'order' => $this->order,
+            'search' => '3001',
+        ]))
+        ->assertOk()
+        ->assertJsonFragment([
+            'id' => $this->inventory->id,
+            'unit_price' => 1.8,
+        ]);
 });

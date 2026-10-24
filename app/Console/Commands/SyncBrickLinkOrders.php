@@ -175,11 +175,11 @@ class SyncBrickLinkOrders extends Command
             'shipping_cost' => $orderData['cost']['shipping'] ?? 0,
             'insurance' => $orderData['cost']['insurance'] ?? 0,
             'tax' => $orderData['cost']['salesTax'] ?? 0,
-            'discount' => $orderData['cost']['etc1'] ?? 0,
+            'discount' => $orderData['cost']['discount'] ?? 0,
             'etc1' => $orderData['cost']['etc1'] ?? 0,
             'etc2' => $orderData['cost']['etc2'] ?? 0,
             'credit' => $orderData['cost']['credit'] ?? 0,
-            'credit_coupon' => $orderData['cost']['credit_coupon'] ?? 0,
+            'credit_coupon' => $orderData['cost']['coupon'] ?? ($orderData['cost']['credit_coupon'] ?? 0),
             'currency_code' => $orderData['cost']['currency_code'] ?? 'EUR',
 
             // VAT Information

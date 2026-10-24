@@ -104,6 +104,23 @@ test('invoice uses final_total when available', function () {
     expect($invoice->total)->toBe('100.00');
 });
 
+test('invoice includes order discounts and coupons in its breakdown', function () {
+    $order = Order::factory()->create([
+        'store_id' => $this->store->id,
+        'subtotal' => 100.00,
+        'shipping_cost' => 10.00,
+        'discount' => 5.00,
+        'credit_coupon' => 3.00,
+        'grand_total' => 110.00,
+        'final_total' => 102.00,
+    ]);
+
+    $invoice = app(InvoiceService::class)->createInvoiceFromOrder($order);
+
+    expect($invoice->discount)->toBe('8.00')
+        ->and($invoice->total)->toBe('102.00');
+});
+
 test('invoice falls back to grand_total when final_total is zero', function () {
     $order = Order::factory()->create([
         'store_id' => $this->store->id,

@@ -369,11 +369,11 @@
                     </tr>
                     <tr>
                         <td class="lbl">Bestellnummer</td>
-                        <td class="val">{{ $order->bricklink_order_id }}</td>
+                        <td class="val">{{ $order?->bricklink_order_id ?? '–' }}</td>
                     </tr>
                     <tr>
                         <td class="lbl">Bestelldatum</td>
-                        <td class="val">{{ $order->order_date ? $order->order_date->format('d.m.Y') : '–' }}</td>
+                        <td class="val">{{ $order?->order_date ? $order->order_date->format('d.m.Y') : '–' }}</td>
                     </tr>
                     @if(!$invoice->is_paid && $invoice->due_date)
                     <tr>
@@ -436,6 +436,18 @@
                     <td class="text-right font-bold">{{ number_format($item->total_price, 2, ',', '.') }}&nbsp;&euro;</td>
                 </tr>
                 @endforeach
+                @foreach($additionalItems as $index => $item)
+                <tr class="{{ ($items->count() + $index) % 2 === 0 ? 'row-odd' : 'row-even' }}">
+                    <td class="item-nr">–</td>
+                    <td>
+                        <div class="item-name">{{ $item->description }}</div>
+                        <div class="item-meta">Zusätzliche Position</div>
+                    </td>
+                    <td class="text-center">{{ $item->quantity }}</td>
+                    <td class="text-right">{{ number_format($item->unit_price, 2, ',', '.') }}&nbsp;&euro;</td>
+                    <td class="text-right font-bold">{{ number_format($item->total_price, 2, ',', '.') }}&nbsp;&euro;</td>
+                </tr>
+                @endforeach
             </tbody>
         </table>
 
@@ -456,6 +468,12 @@
                         <td class="t-label">Warenwert</td>
                         <td class="t-value">{{ number_format($invoice->subtotal, 2, ',', '.') }}&nbsp;&euro;</td>
                     </tr>
+                    @if($invoice->discount > 0)
+                        <tr>
+                            <td class="t-label">Rabatt / Gutschein</td>
+                            <td class="t-value">-{{ number_format($invoice->discount, 2, ',', '.') }}&nbsp;&euro;</td>
+                        </tr>
+                    @endif
                     <tr class="divider">
                         <td class="t-label">Versand &amp; Lieferung</td>
                         <td class="t-value">{{ number_format($invoice->shipping_cost, 2, ',', '.') }}&nbsp;&euro;</td>
@@ -463,7 +481,7 @@
                     @if(!$invoice->is_small_business && $invoice->tax_rate > 0)
                         <tr>
                             <td class="t-label">Nettobetrag</td>
-                            <td class="t-value">{{ number_format($invoice->subtotal + $invoice->shipping_cost, 2, ',', '.') }}&nbsp;&euro;</td>
+                            <td class="t-value">{{ number_format($invoice->subtotal + $invoice->shipping_cost - $invoice->discount, 2, ',', '.') }}&nbsp;&euro;</td>
                         </tr>
                         <tr>
                             <td class="t-label">MwSt. ({{ number_format($invoice->tax_rate, 0) }}%)</td>

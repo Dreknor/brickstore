@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Order;
 use App\Services\ActivityLogger;
 use App\Services\InvoiceService;
@@ -61,7 +62,7 @@ class InvoiceController extends Controller
     {
         Gate::authorize('view', $invoice);
 
-        $invoice->load('order.items');
+        $invoice->load('order.items', 'items');
 
         return view('invoices.show', compact('invoice'));
     }
@@ -276,6 +277,52 @@ class InvoiceController extends Controller
             ActivityLogger::error('invoice.update_failed', "Aktualisierung der Rechnung {$invoice->invoice_number} fehlgeschlagen: {$e->getMessage()}", $invoice);
 
             return redirect()->back()->with('error', 'Rechnungsaktualisierung fehlgeschlagen: '.$e->getMessage());
+        }
+    }
+
+    public function addItem(Invoice $invoice, Request $request)
+    {
+        Gate::authorize('update', $invoice);
+
+        $validated = $request->validate([
+            'description' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1|max:100000',
+            'unit_price' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
+        ]);
+
+        try {
+            $this->invoiceService->addInvoiceItem($invoice, $validated);
+
+            ActivityLogger::info('invoice.item_added', "Position zur Rechnung {$invoice->invoice_number} hinzugefügt", $invoice);
+
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', 'Position hinzugefügt und Rechnung aktualisiert.');
+        } catch (\Exception $e) {
+            ActivityLogger::error('invoice.item_add_failed', "Position konnte nicht zur Rechnung {$invoice->invoice_number} hinzugefügt werden: {$e->getMessage()}", $invoice);
+
+            return redirect()->back()->withInput()->with('error', 'Position konnte nicht hinzugefügt werden: '.$e->getMessage());
+        }
+    }
+
+    public function removeItem(Invoice $invoice, InvoiceItem $item)
+    {
+        Gate::authorize('update', $invoice);
+
+        if ($item->invoice_id !== $invoice->id) {
+            abort(404);
+        }
+
+        try {
+            $this->invoiceService->removeInvoiceItem($item);
+
+            ActivityLogger::info('invoice.item_removed', "Position von Rechnung {$invoice->invoice_number} entfernt", $invoice);
+
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', 'Position entfernt und Rechnung aktualisiert.');
+        } catch (\Exception $e) {
+            ActivityLogger::error('invoice.item_remove_failed', "Position konnte nicht von Rechnung {$invoice->invoice_number} entfernt werden: {$e->getMessage()}", $invoice);
+
+            return redirect()->back()->with('error', 'Position konnte nicht entfernt werden: '.$e->getMessage());
         }
     }
 }

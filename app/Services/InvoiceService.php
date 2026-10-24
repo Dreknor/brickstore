@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\UploadInvoiceToNextcloudJob;
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Order;
 use App\Models\Store;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -51,6 +52,7 @@ class InvoiceService
         $additionalItemsTotal = $order->items()->where('is_manual', true)->sum('total_price');
         $baseSubtotal = $order->subtotal ?? 0;
         $subtotal = $baseSubtotal + $additionalItemsTotal;
+        $discount = ($order->discount ?? 0) + ($order->credit_coupon ?? 0);
         $shippingCost = $order->shipping_cost ?? 0;
 
         // Use VAT if available, otherwise fall back to tax
@@ -92,6 +94,7 @@ class InvoiceService
             'customer_postal_code' => $order->shipping_postal_code,
             'customer_country' => $order->shipping_country,
             'subtotal' => $subtotal,
+            'discount' => $discount,
             'shipping_cost' => $shippingCost,
             'tax_rate' => $taxRate,
             'tax_amount' => $taxAmount,
@@ -116,13 +119,69 @@ class InvoiceService
             'invoice' => $invoice,
             'store' => $store,
             'order' => $order,
-            'items' => $order->items,
+            'items' => $order?->items ?? collect(),
+            'additionalItems' => $invoice->items,
         ];
 
         $pdf = Pdf::loadView('invoices.pdf', $data);
         $pdf->setPaper('a4', 'portrait');
 
         return $pdf;
+    }
+
+    public function addInvoiceItem(Invoice $invoice, array $data): InvoiceItem
+    {
+        $item = DB::transaction(function () use ($invoice, $data) {
+            $invoice = Invoice::lockForUpdate()->findOrFail($invoice->id);
+            $quantity = (int) $data['quantity'];
+            $unitPrice = round((float) $data['unit_price'], 2);
+            $totalPrice = round($quantity * $unitPrice, 2);
+            $taxAmount = $invoice->is_small_business
+                ? 0
+                : round($totalPrice * (float) $invoice->tax_rate / 100, 2);
+
+            $item = $invoice->items()->create([
+                'description' => $data['description'],
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'total_price' => $totalPrice,
+            ]);
+
+            $invoice->update([
+                'subtotal' => round((float) $invoice->subtotal + $totalPrice, 2),
+                'tax_amount' => round((float) $invoice->tax_amount + $taxAmount, 2),
+                'total' => round((float) $invoice->total + $totalPrice + $taxAmount, 2),
+            ]);
+
+            return $item;
+        });
+
+        $this->updateInvoiceAndRegeneratePDF($invoice, []);
+
+        return $item;
+    }
+
+    public function removeInvoiceItem(InvoiceItem $item): void
+    {
+        $invoice = DB::transaction(function () use ($item) {
+            $invoice = Invoice::lockForUpdate()->findOrFail($item->invoice_id);
+            $item = InvoiceItem::where('invoice_id', $invoice->id)->lockForUpdate()->findOrFail($item->id);
+            $taxAmount = $invoice->is_small_business
+                ? 0
+                : round((float) $item->total_price * (float) $invoice->tax_rate / 100, 2);
+
+            $invoice->update([
+                'subtotal' => round((float) $invoice->subtotal - (float) $item->total_price, 2),
+                'tax_amount' => round((float) $invoice->tax_amount - $taxAmount, 2),
+                'total' => round((float) $invoice->total - (float) $item->total_price - $taxAmount, 2),
+            ]);
+
+            $item->delete();
+
+            return $invoice;
+        });
+
+        $this->updateInvoiceAndRegeneratePDF($invoice, []);
     }
 
     /**

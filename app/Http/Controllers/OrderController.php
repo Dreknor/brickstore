@@ -102,7 +102,7 @@ class OrderController extends Controller
             })
             ->orderBy('item_no')
             ->limit(20)
-            ->get(['id', 'item_no', 'item_type', 'description', 'color_name', 'new_or_used', 'quantity', 'unit_price'])
+            ->get(['id', 'item_no', 'item_type', 'description', 'color_name', 'new_or_used', 'quantity', 'unit_price', 'sale_rate'])
             ->map(fn (Inventory $item) => [
                 'id' => $item->id,
                 'item_no' => $item->item_no,
@@ -111,7 +111,7 @@ class OrderController extends Controller
                 'color_name' => $item->color_name,
                 'condition' => $item->new_or_used,
                 'quantity' => $item->quantity,
-                'unit_price' => $item->unit_price,
+                'unit_price' => $item->effectiveUnitPrice(),
             ]);
 
         return response()->json($items);
@@ -452,11 +452,11 @@ class OrderController extends Controller
                 'shipping_cost' => $orderData['cost']['shipping'] ?? 0,
                 'insurance' => $orderData['cost']['insurance'] ?? 0,
                 'tax' => $orderData['cost']['salesTax'] ?? 0,
-                'discount' => $orderData['cost']['etc1'] ?? 0,
+                'discount' => $orderData['cost']['discount'] ?? 0,
                 'etc1' => $orderData['cost']['etc1'] ?? 0,
                 'etc2' => $orderData['cost']['etc2'] ?? 0,
                 'credit' => $orderData['cost']['credit'] ?? 0,
-                'credit_coupon' => $orderData['cost']['credit_coupon'] ?? 0,
+                'credit_coupon' => $orderData['cost']['coupon'] ?? ($orderData['cost']['credit_coupon'] ?? 0),
                 'currency_code' => $orderData['cost']['currency_code'] ?? 'EUR',
 
                 // VAT Information

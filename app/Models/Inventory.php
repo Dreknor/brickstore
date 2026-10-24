@@ -91,6 +91,13 @@ class Inventory extends Model
         return $this->new_or_used === 'N' ? 'New' : 'Used';
     }
 
+    public function effectiveUnitPrice(): float
+    {
+        $saleRate = (float) ($this->sale_rate ?? 0);
+
+        return round((float) $this->unit_price * (100 - $saleRate) / 100, 2);
+    }
+
     public function getCompletenessTextAttribute(): ?string
     {
         return match($this->completeness) {

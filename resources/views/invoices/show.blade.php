@@ -34,10 +34,73 @@
                 <button onclick="this.parentElement.remove()"><i class="fa-solid fa-times"></i></button>
             </div>
         @endif
+        @if(session('error'))
+            <div class="mb-6 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg">
+                {{ session('error') }}
+            </div>
+        @endif
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content -->
             <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Zusätzliche Rechnungspositionen</h2>
+                    @if($invoice->items->isNotEmpty())
+                        <div class="mb-6 divide-y divide-gray-200 dark:divide-gray-700">
+                            @foreach($invoice->items as $item)
+                                <div class="py-3 flex items-center justify-between gap-4">
+                                    <div>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ $item->description }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            {{ $item->quantity }} × {{ number_format($item->unit_price, 2, ',', '.') }} {{ $invoice->currency }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-semibold text-gray-900 dark:text-white">
+                                            {{ number_format($item->total_price, 2, ',', '.') }} {{ $invoice->currency }}
+                                        </span>
+                                        <form action="{{ route('invoices.items.destroy', [$invoice, $item]) }}" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-800" aria-label="Position entfernen">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    <form action="{{ route('invoices.items.store', $invoice) }}" method="POST" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                        @csrf
+                        <div class="md:col-span-6">
+                            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bezeichnung</label>
+                            <input id="description" name="description" value="{{ old('description') }}" required maxlength="255"
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Menge</label>
+                            <input id="quantity" name="quantity" type="number" value="{{ old('quantity', 1) }}" min="1" required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="unit_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Einzelpreis</label>
+                            <input id="unit_price" name="unit_price" type="number" value="{{ old('unit_price') }}" min="0" step="0.01" required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                <i class="fa-solid fa-plus"></i> Hinzufügen
+                            </button>
+                        </div>
+                    </form>
+                    @if($errors->any())
+                        <div class="mt-3 text-sm text-red-600 dark:text-red-400">
+                            {{ $errors->first() }}
+                        </div>
+                    @endif
+                </div>
+
                 <!-- PDF Preview -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
                     <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
@@ -168,4 +231,3 @@
         </div>
     </div>
 </x-layouts.app>
-
